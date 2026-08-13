@@ -176,14 +176,17 @@ const fragmentShader = `
     vec2 cells=floor(uResolution/uCell);
     vec2 cell=floor(vUv*cells);
     vec2 sampleUv=(cell+.5)/cells;
-    vec3 sceneColor=texture2D(tScene,sampleUv).rgb;
-    float light=dot(sceneColor,vec3(.2126,.7152,.0722));
-    if(light<.025){gl_FragColor=vec4(0.0);return;}
+    vec4 sceneSample=texture2D(tScene,sampleUv);
+    if(sceneSample.a<.025){gl_FragColor=vec4(0.0);return;}
+    vec3 normal=normalize(sceneSample.rgb*2.0-1.0);
+    float diffuse=max(dot(normal,normalize(vec3(-.45,.65,.72))),0.0);
+    float rim=pow(1.0-abs(normal.z),2.0);
+    float light=clamp(.58+diffuse*.34+rim*.22,0.0,1.0);
     vec2 local=fract(vUv*cells);
     float bit=step(.5,fract(sin(dot(cell,vec2(12.9898,78.233))+floor(uTime*2.4))*43758.5453));
     vec2 glyphUv=vec2((local.x+bit)*.5,local.y);
     float glyph=texture2D(tGlyphs,glyphUv).r;
-    gl_FragColor=vec4(uColor,glyph*max(light,.68)*uFade);
+    gl_FragColor=vec4(uColor,glyph*mix(.82,1.0,light)*uFade);
   }
 `;
 
