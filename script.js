@@ -207,13 +207,11 @@ const fragmentShader = `
     if(sceneSample.a<.025){gl_FragColor=vec4(0.0);return;}
     float light=dot(sceneSample.rgb,vec3(.299,.587,.114));
     float charIndex=floor(light*15.0);
-    vec2 atlasSize=vec2(16.0);
-    float charX=mod(charIndex,atlasSize.x);
-    float charY=floor(charIndex/atlasSize.y);
-    vec2 glyphUv=mod(vUv*(cells/atlasSize),1.0/atlasSize);
-    glyphUv-=vec2(0.0,1.0/atlasSize.y);
-    glyphUv+=vec2(charX,-charY)/atlasSize;
-    float glyph=texture2D(tGlyphs,glyphUv).r;
+    vec2 local=fract(vUv*cells);
+    float charX=mod(charIndex,16.0);
+    float charY=floor(charIndex/16.0);
+    vec2 glyphUv=(vec2(charX,charY)+local)/16.0;
+    float glyph=max(texture2D(tGlyphs,glyphUv).r,texture2D(tGlyphs,glyphUv).a);
     gl_FragColor=vec4(uColor,glyph*light*uFade*sceneSample.a);
   }
 `;
