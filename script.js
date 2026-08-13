@@ -137,7 +137,7 @@ let dragonflyPoints = [];
 let heroWidth = 0;
 let heroHeight = 0;
 let sceneEnd = 1;
-let lastSceneDraw = 0;
+let sceneProgress = 0;
 
 function addDragonflyPoint(x, y, z, alpha = 1) {
   dragonflyPoints.push({ x, y, z, alpha, bit: Math.random() < .5 ? '0' : '1' });
@@ -145,50 +145,59 @@ function addDragonflyPoint(x, y, z, alpha = 1) {
 
 function buildDragonfly() {
   dragonflyPoints = [];
-  const density = mobileMotion ? .3 : 1;
+  const spanSteps = mobileMotion ? 18 : 28;
+  const chordSteps = mobileMotion ? 5 : 8;
 
-  // Four tapered wing membranes, sampled as a cloud rather than outlined.
+  // Four regular binary membranes make the silhouette legible at a glance.
   [-1, 1].forEach((side) => {
     [
-      { root: -.42, sweep: -1.05, length: 2.65, width: .62 },
-      { root: .02, sweep: .72, length: 2.35, width: .7 }
+      { root: -.28, sweep: -.92, length: 3.05, width: .7, curve: -.32 },
+      { root: .08, sweep: .72, length: 2.72, width: .82, curve: .25 }
     ].forEach((wing, wingIndex) => {
-      const count = Math.floor(540 * density);
-      for (let index = 0; index < count; index += 1) {
-        const span = Math.sqrt(Math.random());
-        const chord = (Math.random() - .5) * Math.sin(Math.PI * span) * wing.width;
-        const x = side * (.2 + span * wing.length);
-        const y = wing.root + span * wing.sweep + chord;
-        const z = Math.sin(span * Math.PI) * (wingIndex ? -.1 : .12) + chord * .18;
-        addDragonflyPoint(x, y, z, .22 + Math.random() * .62);
+      for (let spanIndex = 1; spanIndex <= spanSteps; spanIndex += 1) {
+        const span = spanIndex / spanSteps;
+        const rows = Math.max(2, Math.round(Math.sin(Math.PI * span) * chordSteps));
+        for (let row = -rows; row <= rows; row += 1) {
+          const chord = row / rows * Math.sin(Math.PI * span) * wing.width;
+          const x = side * (.18 + span * wing.length);
+          const y = wing.root + span * wing.sweep + Math.sin(span * Math.PI) * wing.curve + chord;
+          const z = Math.sin(span * Math.PI) * (wingIndex ? -.08 : .1) + chord * .12;
+          addDragonflyPoint(x, y, z, .28 + (1 - Math.abs(row / rows)) * .48);
+        }
       }
     });
   });
 
-  // Segmented thorax and abdomen.
-  const bodyCount = Math.floor(430 * density);
-  for (let index = 0; index < bodyCount; index += 1) {
-    const y = -1.05 + Math.random() * 3.65;
-    const taper = y < .35 ? .28 + (y + 1.05) * .08 : Math.max(.055, .22 - (y - .35) * .065);
-    const angle = Math.random() * Math.PI * 2;
-    const radius = Math.sqrt(Math.random()) * taper;
-    addDragonflyPoint(Math.cos(angle) * radius, y, Math.sin(angle) * radius, .38 + Math.random() * .58);
+  // Ringed thorax and long segmented abdomen.
+  const bodySegments = mobileMotion ? 30 : 48;
+  const ringPoints = mobileMotion ? 6 : 9;
+  for (let segment = 0; segment < bodySegments; segment += 1) {
+    const t = segment / (bodySegments - 1);
+    const y = -1 + t * 4.45;
+    const radius = t < .3 ? .24 + Math.sin(t / .3 * Math.PI) * .28 : Math.max(.035, .18 * (1 - (t - .3) / .7));
+    for (let ring = 0; ring < ringPoints; ring += 1) {
+      const angle = ring / ringPoints * Math.PI * 2;
+      addDragonflyPoint(Math.cos(angle) * radius, y, Math.sin(angle) * radius, .58 + (ring % 3) * .16);
+    }
   }
 
-  // Head and two denser eyes.
-  const headCount = Math.floor(150 * density);
-  for (let index = 0; index < headCount; index += 1) {
-    const angle = Math.random() * Math.PI * 2;
-    const radius = Math.sqrt(Math.random()) * .34;
-    const z = (Math.random() - .5) * .42;
-    addDragonflyPoint(Math.cos(angle) * radius, -1.25 + Math.sin(angle) * radius * .7, z, .55 + Math.random() * .45);
+  const headRings = mobileMotion ? 4 : 6;
+  for (let ring = 0; ring < headRings; ring += 1) {
+    const latitude = (ring / (headRings - 1) - .5) * Math.PI;
+    const radius = Math.cos(latitude) * .34;
+    const y = -1.28 + Math.sin(latitude) * .28;
+    const points = mobileMotion ? 7 : 11;
+    for (let index = 0; index < points; index += 1) {
+      const angle = index / points * Math.PI * 2;
+      addDragonflyPoint(Math.cos(angle) * radius, y, Math.sin(angle) * radius, .76);
+    }
   }
 
-  // Long binary flight trails crossing behind the insect.
-  const trailCount = Math.floor(170 * density);
+  // Sparse diagonal trail echoes the reference scene without obscuring the insect.
+  const trailCount = mobileMotion ? 34 : 70;
   for (let index = 0; index < trailCount; index += 1) {
     const t = index / trailCount;
-    addDragonflyPoint(-3.2 + t * 6.4, -2.15 + t * 4.3, -.55, .08 + t * .24);
+    addDragonflyPoint(-3.6 + t * 7.2, -2.4 + t * 4.8, -.55, .06 + t * .2);
   }
 }
 
@@ -226,25 +235,23 @@ function drawScene(time = 0) {
     context.clearRect(0, 0, heroWidth, heroHeight);
     return;
   }
-  const interval = mobileMotion ? 1000 / 24 : 1000 / 40;
-  if (!reduceMotion && time - lastSceneDraw < interval) return;
-  lastSceneDraw = time;
   context.clearRect(0, 0, heroWidth, heroHeight);
-  const progress = Math.min(1, Math.max(0, window.scrollY / Math.max(1, sceneEnd - window.innerHeight * .35)));
-  const ease = progress * progress * (3 - 2 * progress);
+  const targetProgress = Math.min(1, Math.max(0, window.scrollY / Math.max(1, sceneEnd - window.innerHeight * .35)));
+  sceneProgress += (targetProgress - sceneProgress) * (mobileMotion ? .14 : .1);
+  const ease = sceneProgress * sceneProgress * (3 - 2 * sceneProgress);
   const idle = reduceMotion ? 0 : time * .00008;
-  const rotateX = .78 - ease * 1.12 + Math.sin(idle * 1.7) * .035;
-  const rotateY = -.52 + ease * 1.7 + (cursorX - .5) * .14;
-  const rotateZ = -.82 + ease * .92 + Math.sin(idle) * .04;
-  const scale = Math.min(heroWidth, heroHeight) * (mobileMotion ? .12 : .15) * (1 + ease * .58);
+  const rotateX = .08 - ease * .42 + Math.sin(idle * 1.7) * .025;
+  const rotateY = -.12 + ease * 1.06 + (cursorX - .5) * .09;
+  const rotateZ = -.46 + ease * .5 + Math.sin(idle) * .025;
+  const scale = heroWidth * (mobileMotion ? .14 : .137) * (1 + ease * .2);
   const centerX = heroWidth * (.51 + (cursorX - .5) * .018);
-  const centerY = heroHeight * (.52 - ease * .03 + (cursorY - .5) * .012);
+  const centerY = heroHeight * (.51 - ease * .015 + (cursorY - .5) * .012);
   const flip = Math.floor(time / 230);
 
   context.font = `400 ${mobileMotion ? 7 : 8}px "DM Mono", monospace`;
   context.textAlign = 'center';
   context.textBaseline = 'middle';
-  const stageFade = progress > .88 ? (1 - progress) / .12 : 1;
+  const stageFade = sceneProgress > .9 ? (1 - sceneProgress) / .1 : 1;
   dragonflyPoints.forEach((point, index) => {
     const rotated = rotatePoint(point, rotateX, rotateY, rotateZ);
     const perspective = 1 / Math.max(.6, 1 + rotated.z * .12);
