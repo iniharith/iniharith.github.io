@@ -170,6 +170,7 @@ const fragmentShader = `
   uniform float uTime;
   uniform float uCell;
   uniform float uFade;
+  uniform vec3 uColor;
   varying vec2 vUv;
   void main(){
     vec2 cells=floor(uResolution/uCell);
@@ -184,10 +185,9 @@ const fragmentShader = `
     vec2 glyphUv=vec2((local.x+bit)*.5,local.y);
     float glyph=texture2D(tGlyphs,glyphUv).r;
     float spark=step(.985,fract(sin(dot(cell,vec2(39.346,11.135))+floor(uTime*3.0))*24634.634));
-    vec3 acid=vec3(.78,1.0,.086);
-    vec3 color=mix(acid*.24,acid,shade);
-    color=mix(color,vec3(1.0),spark);
-    gl_FragColor=vec4(color,glyph*max(light,.22)*uFade);
+    vec3 color=mix(uColor*.42,uColor,shade);
+    color=mix(color,vec3(1.0),spark*.35);
+    gl_FragColor=vec4(color,glyph*max(light,.55)*uFade);
   }
 `;
 
@@ -241,7 +241,7 @@ function initDragonfly(){
   modelCamera.position.set(0,0,7);
   renderTarget=new THREE.WebGLRenderTarget(1,1,{depthBuffer:true});
   postScene=new THREE.Scene();postCamera=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
-  asciiMaterial=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,uniforms:{tScene:{value:renderTarget.texture},tGlyphs:{value:createGlyphTexture()},uResolution:{value:new THREE.Vector2()},uTime:{value:0},uCell:{value:9},uFade:{value:1}},vertexShader,fragmentShader});
+  asciiMaterial=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,uniforms:{tScene:{value:renderTarget.texture},tGlyphs:{value:createGlyphTexture()},uResolution:{value:new THREE.Vector2()},uTime:{value:0},uCell:{value:9},uFade:{value:1},uColor:{value:new THREE.Color(0xffffff)}},vertexShader,fragmentShader});
   postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),asciiMaterial));
   const draco=new DRACOLoader();draco.setDecoderPath('assets/draco/');draco.setDecoderConfig({type:'wasm'});
   const loader=new GLTFLoader();loader.setDRACOLoader(draco);
@@ -275,6 +275,7 @@ function drawScene(time=0,delta=0){
       if(rect.bottom<=0||rect.top>=heroHeight)return;
       const entry=galleryModels.find((model)=>model.name===viewport.dataset.model);
       if(!entry)return;
+      asciiMaterial.uniforms.uColor.value.set(['lantern','logo'].includes(entry.name)?0x050505:0xffffff);
       galleryModels.forEach((model)=>{model.root.visible=model===entry;});
       entry.root.rotation.y+=delta*.25*modelSpinDirection;
       entry.model.rotation.y=THREE.MathUtils.lerp(entry.model.rotation.y,window.scrollY*.005,.3);
@@ -297,6 +298,7 @@ function drawScene(time=0,delta=0){
   renderTarget.setSize(Math.max(1,heroWidth*ratio),Math.max(1,heroHeight*ratio));
   asciiMaterial.uniforms.uResolution.value.set(heroWidth*ratio,heroHeight*ratio);
   asciiMaterial.uniforms.uCell.value=6*ratio;
+  asciiMaterial.uniforms.uColor.value.set(0xffffff);
   modelCamera.fov=mobileMotion?16:11;modelCamera.updateProjectionMatrix();
   const targetProgress=Math.min(1,Math.max(0,window.scrollY/Math.max(1,sceneEnd-window.innerHeight*.35)));
   sceneProgress+=(targetProgress-sceneProgress)*(mobileMotion?.14:.1);
