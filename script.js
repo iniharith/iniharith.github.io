@@ -159,36 +159,9 @@ let sceneEnd = 1;
 let sceneProgress = 0;
 const galleryModels = [];
 const galleryFiles = ['lantern','dragon','logo','flower','hive','fish'];
-const modelCameraSettings = {lantern:{z:100,y:0},dragon:{z:34,y:3.2},flower:{z:10,y:0},hive:{z:35,y:0},fish:{z:11,y:0},logo:{z:13,y:0}};
 let modelSpinDirection = 1;
 let previousScrollY = window.scrollY;
 const vertexShader = `varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position,1.0);}`;
-const modelVertexShader = `
-  varying vec3 vNormal;
-  varying vec3 vPosition;
-  void main(){
-    vec4 mvPosition=modelViewMatrix*vec4(position,1.0);
-    vPosition=mvPosition.xyz;
-    vNormal=normalize(normalMatrix*normal);
-    gl_Position=projectionMatrix*mvPosition;
-  }
-`;
-const modelFragmentShader = `
-  precision highp float;
-  uniform vec3 uRemapColor;
-  uniform vec3 uLightDir;
-  uniform float uBrightness;
-  uniform float uNormalStrength;
-  varying vec3 vNormal;
-  varying vec3 vPosition;
-  void main(){
-    vec3 normal=normalize(vNormal);
-    float diffuse=max(dot(normal,normalize(uLightDir)),0.0);
-    vec3 color=diffuse*uBrightness+normal*uNormalStrength+.5;
-    color=clamp(color,.15,.995)*uRemapColor;
-    gl_FragColor=vec4(color,1.0);
-  }
-`;
 const fragmentShader = `
   precision highp float;
   uniform sampler2D tScene;
@@ -200,17 +173,20 @@ const fragmentShader = `
   uniform vec3 uColor;
   varying vec2 vUv;
   void main(){
-    vec2 cells=uResolution/uCell;
-    vec2 cellSize=1.0/cells;
-    vec2 sampleUv=cellSize*(floor(vUv/cellSize)+.5);
+    vec2 cells=floor(uResolution/uCell);
+    vec2 cell=floor(vUv*cells);
+    vec2 sampleUv=(cell+.5)/cells;
     vec4 sceneSample=texture2D(tScene,sampleUv);
     if(sceneSample.a<.025){gl_FragColor=vec4(0.0);return;}
-    float light=dot(sceneSample.rgb,vec3(.299,.587,.114));
+    vec3 normal=normalize(sceneSample.rgb*2.0-1.0);
+    float diffuse=max(dot(normal,normalize(vec3(-.45,.65,.72))),0.0);
+    float rim=pow(1.0-abs(normal.z),2.0);
+    float light=clamp(.58+diffuse*.34+rim*.22,0.0,1.0);
     vec2 local=fract(vUv*cells);
-    float bit=step(.5,fract(sin(dot(floor(vUv*cells),vec2(12.9898,78.233)))*43758.5453));
+    float bit=step(.5,fract(sin(dot(cell,vec2(12.9898,78.233))+floor(uTime*2.4))*43758.5453));
     vec2 glyphUv=vec2((local.x+bit)*.5,local.y);
     float glyph=texture2D(tGlyphs,glyphUv).r;
-    gl_FragColor=vec4(uColor,glyph*max(light,.52)*uFade*sceneSample.a);
+    gl_FragColor=vec4(uColor,glyph*mix(.82,1.0,light)*uFade);
   }
 `;
 
@@ -243,20 +219,17 @@ function resizeHero(){
 
 function prepareModel(gltf,name){
   const root=new THREE.Group();
-  root.add(gltf.scene);root.visible=false;
-  const modelMaterial=createModelMaterial(name==='logo'?new THREE.Vector3(.9,.9,.9):new THREE.Vector3(.69,.9,.9),name==='logo'?1:.2);
-  root.traverse((child)=>{if(child.isMesh){
-    child.material=modelMaterial;
-  }});
+  const bounds=new THREE.Box3().setFromObject(gltf.scene);
+  const center=bounds.getCenter(new THREE.Vector3());
+  const size=bounds.getSize(new THREE.Vector3());
+  gltf.scene.position.sub(center);
+  root.add(gltf.scene);root.scale.setScalar((mobileMotion?2.65:3.2)/Math.max(size.x,size.y,size.z));root.visible=false;
+  root.traverse((child)=>{if(child.isMesh){child.material=new THREE.MeshNormalMaterial({side:THREE.DoubleSide});}});
   const modelMixer=['flower','hive','fish'].includes(name)?new THREE.AnimationMixer(gltf.scene):null;
   let duration=1;
   if(modelMixer)gltf.animations.forEach((clip)=>{modelMixer.clipAction(clip).play();duration=Math.max(duration,clip.duration);});
   modelScene.add(root);
   galleryModels.push({name,root,model:gltf.scene,mixer:modelMixer,duration});
-}
-
-function createModelMaterial(remapColor=new THREE.Vector3(.69,.9,.9),brightness=.2){
-  return new THREE.ShaderMaterial({transparent:true,side:THREE.DoubleSide,uniforms:{uRemapColor:{value:remapColor},uLightDir:{value:new THREE.Vector3(0,2,1)},uBrightness:{value:brightness},uNormalStrength:{value:.5}},vertexShader:modelVertexShader,fragmentShader:modelFragmentShader});
 }
 
 function initDragonfly(){
@@ -265,7 +238,7 @@ function initDragonfly(){
   modelScene=new THREE.Scene();
   modelCamera=new THREE.PerspectiveCamera(mobileMotion?16:11,1,.1,1000);
   modelCamera.position.set(0,0,7);
-  renderTarget=new THREE.WebGLRenderTarget(1,1,{depthBuffer:true,stencilBuffer:false});
+  renderTarget=new THREE.WebGLRenderTarget(1,1,{depthBuffer:true});
   postScene=new THREE.Scene();postCamera=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
   asciiMaterial=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,uniforms:{tScene:{value:renderTarget.texture},tGlyphs:{value:createGlyphTexture()},uResolution:{value:new THREE.Vector2()},uTime:{value:0},uCell:{value:9},uFade:{value:1},uColor:{value:new THREE.Color(0xffffff)}},vertexShader,fragmentShader});
   postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),asciiMaterial));
@@ -273,10 +246,7 @@ function initDragonfly(){
   const loader=new GLTFLoader();loader.setDRACOLoader(draco);
   loader.load('assets/models/dragonfly.glb',(gltf)=>{
     dragonfly=new THREE.Group();dragonflyMotion=new THREE.Group();dragonflyMotion.add(gltf.scene);dragonfly.add(dragonflyMotion);
-    const dragonflyMaterial=createModelMaterial();
-    dragonfly.traverse((child)=>{if(child.isMesh){
-      child.material=dragonflyMaterial;
-    }});
+    dragonfly.traverse((child)=>{if(child.isMesh){child.material=new THREE.MeshNormalMaterial({side:THREE.DoubleSide});}});
     modelScene.add(dragonfly);
     mixer=new THREE.AnimationMixer(gltf.scene);
     if(gltf.animations[0]){const action=mixer.clipAction(gltf.animations[0]);action.play();animationDuration=gltf.animations[0].duration;mixer.setTime(0);}
@@ -309,8 +279,6 @@ function drawScene(time=0,delta=0){
       entry.root.rotation.y+=delta*.25*modelSpinDirection;
       entry.model.rotation.y=THREE.MathUtils.lerp(entry.model.rotation.y,window.scrollY*.005,.3);
       if(entry.mixer)entry.mixer.update(delta);
-      const cameraSettings=modelCameraSettings[entry.name];
-      modelCamera.position.set(0,cameraSettings.y,cameraSettings.z);modelCamera.lookAt(0,0,0);
       const ratio=mobileMotion?1:Math.min(window.devicePixelRatio||1,1.5);
       const width=Math.max(1,Math.round(rect.width*ratio));const height=Math.max(1,Math.round(rect.height*ratio));
       renderTarget.setSize(width,height);modelCamera.aspect=width/height;modelCamera.updateProjectionMatrix();
