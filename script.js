@@ -178,15 +178,13 @@ const fragmentShader = `
     vec2 sampleUv=(cell+.5)/cells;
     vec4 sceneSample=texture2D(tScene,sampleUv);
     if(sceneSample.a<.025){gl_FragColor=vec4(0.0);return;}
-    vec3 normal=normalize(sceneSample.rgb*2.0-1.0);
-    float diffuse=max(dot(normal,normalize(vec3(-.45,.65,.72))),0.0);
-    float rim=pow(1.0-abs(normal.z),2.0);
-    float light=clamp(.58+diffuse*.34+rim*.22,0.0,1.0);
+    float sourceLight=dot(sceneSample.rgb,vec3(.2126,.7152,.0722));
+    float light=smoothstep(.04,.88,sourceLight);
     vec2 local=fract(vUv*cells);
     float bit=step(.5,fract(sin(dot(cell,vec2(12.9898,78.233))+floor(uTime*2.4))*43758.5453));
     vec2 glyphUv=vec2((local.x+bit)*.5,local.y);
     float glyph=texture2D(tGlyphs,glyphUv).r;
-    gl_FragColor=vec4(uColor,glyph*mix(.82,1.0,light)*uFade);
+    gl_FragColor=vec4(uColor,glyph*mix(.58,1.0,light)*uFade);
   }
 `;
 
@@ -224,7 +222,10 @@ function prepareModel(gltf,name){
   const size=bounds.getSize(new THREE.Vector3());
   gltf.scene.position.sub(center);
   root.add(gltf.scene);root.scale.setScalar((mobileMotion?2.65:3.2)/Math.max(size.x,size.y,size.z));root.visible=false;
-  root.traverse((child)=>{if(child.isMesh){child.material=new THREE.MeshNormalMaterial({side:THREE.DoubleSide});}});
+  root.traverse((child)=>{if(child.isMesh){
+    const materials=Array.isArray(child.material)?child.material:[child.material];
+    materials.forEach((material)=>{material.side=THREE.DoubleSide;if(material.isMeshStandardMaterial){material.roughness=.52;material.metalness=.12;}material.needsUpdate=true;});
+  }});
   const modelMixer=['flower','hive','fish'].includes(name)?new THREE.AnimationMixer(gltf.scene):null;
   let duration=1;
   if(modelMixer)gltf.animations.forEach((clip)=>{modelMixer.clipAction(clip).play();duration=Math.max(duration,clip.duration);});
@@ -235,7 +236,12 @@ function prepareModel(gltf,name){
 function initDragonfly(){
   renderer=new THREE.WebGLRenderer({canvas:heroCanvas,alpha:true,antialias:false,powerPreference:'high-performance'});
   renderer.setClearColor(0x000000,0);
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;
   modelScene=new THREE.Scene();
+  modelScene.add(new THREE.HemisphereLight(0xffffff,0x080808,.6));
+  const keyLight=new THREE.DirectionalLight(0xffffff,4.2);keyLight.position.set(-4,6,7);modelScene.add(keyLight);
+  const fillLight=new THREE.DirectionalLight(0xffffff,.75);fillLight.position.set(5,-2,4);modelScene.add(fillLight);
+  const rimLight=new THREE.DirectionalLight(0xffffff,2.6);rimLight.position.set(3,4,-6);modelScene.add(rimLight);
   modelCamera=new THREE.PerspectiveCamera(mobileMotion?16:11,1,.1,1000);
   modelCamera.position.set(0,0,7);
   renderTarget=new THREE.WebGLRenderTarget(1,1,{depthBuffer:true});
@@ -246,7 +252,10 @@ function initDragonfly(){
   const loader=new GLTFLoader();loader.setDRACOLoader(draco);
   loader.load('assets/models/dragonfly.glb',(gltf)=>{
     dragonfly=new THREE.Group();dragonflyMotion=new THREE.Group();dragonflyMotion.add(gltf.scene);dragonfly.add(dragonflyMotion);
-    dragonfly.traverse((child)=>{if(child.isMesh){child.material=new THREE.MeshNormalMaterial({side:THREE.DoubleSide});}});
+    dragonfly.traverse((child)=>{if(child.isMesh){
+      const materials=Array.isArray(child.material)?child.material:[child.material];
+      materials.forEach((material)=>{material.side=THREE.DoubleSide;if(material.isMeshStandardMaterial){material.roughness=.52;material.metalness=.12;}material.needsUpdate=true;});
+    }});
     modelScene.add(dragonfly);
     mixer=new THREE.AnimationMixer(gltf.scene);
     if(gltf.animations[0]){const action=mixer.clipAction(gltf.animations[0]);action.play();animationDuration=gltf.animations[0].duration;mixer.setTime(0);}
