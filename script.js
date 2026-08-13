@@ -97,13 +97,7 @@ function updateFluid() {
 }
 
 let scrollTicking = false;
-let lastScrollY = window.scrollY;
-let scrollImpulse = 0;
-let scrollFlow = 0;
 function onScroll() {
-  const nextScrollY = window.scrollY;
-  scrollImpulse = Math.max(-36, Math.min(36, nextScrollY - lastScrollY));
-  lastScrollY = nextScrollY;
   if (scrollTicking) return;
   scrollTicking = true;
   requestAnimationFrame(() => {
@@ -137,28 +131,65 @@ if (!reduceMotion && typeof window.Lenis !== 'undefined') {
 }
 
 const heroCanvas = document.querySelector('#hero-scene');
+const aboutSection = document.querySelector('#about');
 let context = null;
-let fireflies = [];
+let dragonflyPoints = [];
 let heroWidth = 0;
 let heroHeight = 0;
-let heroVisible = true;
+let sceneEnd = 1;
 let lastSceneDraw = 0;
 
-function buildFireflies() {
-  const count = mobileMotion ? 8 : 15;
-  fireflies = Array.from({ length: count }, () => ({
-    x: Math.random() * heroWidth,
-    y: Math.random() * heroHeight,
-    size: 6 + Math.random() * 3.5,
-    speed: 0.08 + Math.random() * 0.22,
-    driftX: (Math.random() - 0.5) * 0.16,
-    sway: 15 + Math.random() * 42,
-    phase: Math.random() * Math.PI * 2,
-    pulse: 0.0008 + Math.random() * 0.0015,
-    alpha: 0.38 + Math.random() * 0.48,
-    depth: 0.55 + Math.random() * 0.8,
-    flip: Math.random() * 1000
-  }));
+function addDragonflyPoint(x, y, z, alpha = 1) {
+  dragonflyPoints.push({ x, y, z, alpha, bit: Math.random() < .5 ? '0' : '1' });
+}
+
+function buildDragonfly() {
+  dragonflyPoints = [];
+  const density = mobileMotion ? .3 : 1;
+
+  // Four tapered wing membranes, sampled as a cloud rather than outlined.
+  [-1, 1].forEach((side) => {
+    [
+      { root: -.42, sweep: -1.05, length: 2.65, width: .62 },
+      { root: .02, sweep: .72, length: 2.35, width: .7 }
+    ].forEach((wing, wingIndex) => {
+      const count = Math.floor(540 * density);
+      for (let index = 0; index < count; index += 1) {
+        const span = Math.sqrt(Math.random());
+        const chord = (Math.random() - .5) * Math.sin(Math.PI * span) * wing.width;
+        const x = side * (.2 + span * wing.length);
+        const y = wing.root + span * wing.sweep + chord;
+        const z = Math.sin(span * Math.PI) * (wingIndex ? -.1 : .12) + chord * .18;
+        addDragonflyPoint(x, y, z, .22 + Math.random() * .62);
+      }
+    });
+  });
+
+  // Segmented thorax and abdomen.
+  const bodyCount = Math.floor(430 * density);
+  for (let index = 0; index < bodyCount; index += 1) {
+    const y = -1.05 + Math.random() * 3.65;
+    const taper = y < .35 ? .28 + (y + 1.05) * .08 : Math.max(.055, .22 - (y - .35) * .065);
+    const angle = Math.random() * Math.PI * 2;
+    const radius = Math.sqrt(Math.random()) * taper;
+    addDragonflyPoint(Math.cos(angle) * radius, y, Math.sin(angle) * radius, .38 + Math.random() * .58);
+  }
+
+  // Head and two denser eyes.
+  const headCount = Math.floor(150 * density);
+  for (let index = 0; index < headCount; index += 1) {
+    const angle = Math.random() * Math.PI * 2;
+    const radius = Math.sqrt(Math.random()) * .34;
+    const z = (Math.random() - .5) * .42;
+    addDragonflyPoint(Math.cos(angle) * radius, -1.25 + Math.sin(angle) * radius * .7, z, .55 + Math.random() * .45);
+  }
+
+  // Long binary flight trails crossing behind the insect.
+  const trailCount = Math.floor(170 * density);
+  for (let index = 0; index < trailCount; index += 1) {
+    const t = index / trailCount;
+    addDragonflyPoint(-3.2 + t * 6.4, -2.15 + t * 4.3, -.55, .08 + t * .24);
+  }
 }
 
 function resizeHero() {
@@ -168,81 +199,65 @@ function resizeHero() {
   heroCanvas.width = heroWidth * ratio;
   heroCanvas.height = heroHeight * ratio;
   context.setTransform(ratio, 0, 0, ratio, 0, 0);
-  buildFireflies();
+  sceneEnd = Math.max(1, aboutSection.offsetTop + aboutSection.offsetHeight);
+  buildDragonfly();
 }
 
-function drawFog(time) {
-  const blobs = [
-    { x: heroWidth * 0.3, y: heroHeight * 0.3, r: Math.max(heroWidth, heroHeight) * 0.42, a: 0.1, dx: 40, dy: 26, s: 0.05 },
-    { x: heroWidth * 0.8, y: heroHeight * 0.55, r: Math.max(heroWidth, heroHeight) * 0.36, a: 0.08, dx: -36, dy: 20, s: 0.04 },
-    { x: heroWidth * 0.55, y: heroHeight * 0.8, r: Math.max(heroWidth, heroHeight) * 0.4, a: 0.07, dx: 26, dy: -22, s: 0.045 }
-  ];
-  blobs.forEach((blob, index) => {
-    const offsetX = Math.sin(time * blob.s + index * 2.1) * blob.dx;
-    const offsetY = Math.cos(time * blob.s * 0.8 + index) * blob.dy;
-    const cx = blob.x + offsetX;
-    const cy = blob.y + offsetY;
-    const gradient = context.createRadialGradient(cx, cy, 0, cx, cy, blob.r);
-    gradient.addColorStop(0, `rgba(199, 255, 22, ${blob.a})`);
-    gradient.addColorStop(1, 'rgba(199, 255, 22, 0)');
-    context.fillStyle = gradient;
-    context.fillRect(0, 0, heroWidth, heroHeight);
-  });
-}
-
-function drawFirefly(firefly, time) {
-  const pulse = 0.45 + 0.55 * Math.sin(time * firefly.pulse + firefly.phase);
-  const swayX = Math.sin(firefly.phase + time * 0.00022) * firefly.sway;
-  const wingSpread = 1.25 + Math.abs(Math.sin(time * 0.006 + firefly.phase)) * 1.15;
-  const unit = firefly.size * firefly.depth;
-  const flip = Math.floor((time + firefly.flip) / 260);
-  const glyphs = [
-    { x: -2 * wingSpread, y: -1.1, wing: true },
-    { x: -3 * wingSpread, y: 0, wing: true },
-    { x: -2 * wingSpread, y: 1.1, wing: true },
-    { x: 2 * wingSpread, y: -1.1, wing: true },
-    { x: 3 * wingSpread, y: 0, wing: true },
-    { x: 2 * wingSpread, y: 1.1, wing: true },
-    { x: 0, y: -1.45 },
-    { x: 0, y: -.35, core: true },
-    { x: 0, y: .75, core: true },
-    { x: 0, y: 1.85 }
-  ];
-  context.save();
-  context.translate(firefly.x + swayX + scrollFlow * firefly.depth * .45, firefly.y - scrollFlow * firefly.depth * 1.5);
-  context.font = `500 ${unit}px "DM Mono", monospace`;
-  context.textAlign = 'center';
-  context.textBaseline = 'middle';
-  glyphs.forEach((glyph, index) => {
-    const coreLight = glyph.core ? .35 : 0;
-    context.globalAlpha = firefly.alpha * Math.min(1, pulse + coreLight) * (glyph.wing ? .62 : 1);
-    context.fillStyle = glyph.core && pulse > .68 ? '#e8ff99' : '#c7ff16';
-    context.shadowColor = '#c7ff16';
-    context.shadowBlur = mobileMotion ? (glyph.core ? 5 : 2) : (glyph.core ? 12 : 5);
-    context.fillText((index + flip) % 2 ? '1' : '0', glyph.x * unit, glyph.y * unit);
-  });
-  context.restore();
+function rotatePoint(point, rotateX, rotateY, rotateZ) {
+  const cosX = Math.cos(rotateX);
+  const sinX = Math.sin(rotateX);
+  const cosY = Math.cos(rotateY);
+  const sinY = Math.sin(rotateY);
+  const cosZ = Math.cos(rotateZ);
+  const sinZ = Math.sin(rotateZ);
+  const y1 = point.y * cosX - point.z * sinX;
+  const z1 = point.y * sinX + point.z * cosX;
+  const x2 = point.x * cosY + z1 * sinY;
+  const z2 = -point.x * sinY + z1 * cosY;
+  return {
+    x: x2 * cosZ - y1 * sinZ,
+    y: x2 * sinZ + y1 * cosZ,
+    z: z2
+  };
 }
 
 function drawScene(time = 0) {
-  if (!heroVisible) return;
+  if (window.scrollY > sceneEnd) {
+    context.clearRect(0, 0, heroWidth, heroHeight);
+    return;
+  }
   const interval = mobileMotion ? 1000 / 24 : 1000 / 40;
   if (!reduceMotion && time - lastSceneDraw < interval) return;
   lastSceneDraw = time;
   context.clearRect(0, 0, heroWidth, heroHeight);
-  context.save();
-  context.translate((cursorX - 0.5) * 22, (cursorY - 0.5) * 22);
-  if (!mobileMotion) drawFog(time);
-  fireflies.forEach((firefly) => {
-    firefly.y -= firefly.speed * firefly.depth + scrollFlow * .018 * firefly.depth;
-    firefly.x += firefly.driftX + scrollFlow * .004;
-    if (firefly.y < -24 || firefly.x < -60 || firefly.x > heroWidth + 60) {
-      firefly.y = heroHeight + 24;
-      firefly.x = Math.random() * heroWidth;
-    }
-    drawFirefly(firefly, time);
+  const progress = Math.min(1, Math.max(0, window.scrollY / Math.max(1, sceneEnd - window.innerHeight * .35)));
+  const ease = progress * progress * (3 - 2 * progress);
+  const idle = reduceMotion ? 0 : time * .00008;
+  const rotateX = .78 - ease * 1.12 + Math.sin(idle * 1.7) * .035;
+  const rotateY = -.52 + ease * 1.7 + (cursorX - .5) * .14;
+  const rotateZ = -.82 + ease * .92 + Math.sin(idle) * .04;
+  const scale = Math.min(heroWidth, heroHeight) * (mobileMotion ? .12 : .15) * (1 + ease * .58);
+  const centerX = heroWidth * (.51 + (cursorX - .5) * .018);
+  const centerY = heroHeight * (.52 - ease * .03 + (cursorY - .5) * .012);
+  const flip = Math.floor(time / 230);
+
+  context.font = `400 ${mobileMotion ? 7 : 8}px "DM Mono", monospace`;
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  const stageFade = progress > .88 ? (1 - progress) / .12 : 1;
+  dragonflyPoints.forEach((point, index) => {
+    const rotated = rotatePoint(point, rotateX, rotateY, rotateZ);
+    const perspective = 1 / Math.max(.6, 1 + rotated.z * .12);
+    const x = centerX + rotated.x * scale * perspective;
+    const y = centerY + rotated.y * scale * perspective;
+    if (x < -10 || x > heroWidth + 10 || y < -10 || y > heroHeight + 10) return;
+    const flicker = .68 + Math.sin(time * .002 + index * .73) * .32;
+    const depth = Math.max(.24, Math.min(1, .72 - rotated.z * .13));
+    context.globalAlpha = point.alpha * flicker * depth * stageFade;
+    context.fillStyle = index % 41 === flip % 41 ? '#c7ff16' : 'rgba(241,240,234,.9)';
+    context.fillText((index + flip) % 7 === 0 ? (point.bit === '1' ? '0' : '1') : point.bit, x, y);
   });
-  context.restore();
+  context.globalAlpha = 1;
 }
 
 if (heroCanvas && heroCanvas.getContext) {
@@ -253,17 +268,12 @@ if (heroCanvas && heroCanvas.getContext) {
     resizeTimer = setTimeout(resizeHero, 120);
   }, { passive: true });
   resizeHero();
-  new IntersectionObserver(([entry]) => {
-    heroVisible = entry.isIntersecting;
-  }, { threshold: 0 }).observe(heroCanvas);
 }
 
 function loop(time) {
   if (lenis) lenis.raf(time);
   cursorX += (pointerX - cursorX) * 0.05;
   cursorY += (pointerY - cursorY) * 0.05;
-  scrollFlow += (scrollImpulse - scrollFlow) * 0.12;
-  scrollImpulse *= 0.86;
   if (auroraGlobal) {
     auroraGlobal.style.transform = `translate3d(${(cursorX - 0.5) * -40}px, ${(cursorY - 0.5) * -40}px, 0)`;
   }
