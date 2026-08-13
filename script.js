@@ -206,25 +206,22 @@ const fragmentShader = `
     vec4 sceneSample=texture2D(tScene,sampleUv);
     if(sceneSample.a<.025){gl_FragColor=vec4(0.0);return;}
     float light=dot(sceneSample.rgb,vec3(.299,.587,.114));
-    float charIndex=floor(light*15.0);
     vec2 local=fract(vUv*cells);
-    float charX=mod(charIndex,16.0);
-    float charY=floor(charIndex/16.0);
-    vec2 glyphUv=(vec2(charX,charY)+local)/16.0;
-    float glyph=max(texture2D(tGlyphs,glyphUv).r,texture2D(tGlyphs,glyphUv).a);
-    gl_FragColor=vec4(uColor,glyph*light*uFade*sceneSample.a);
+    float bit=step(.5,fract(sin(dot(floor(vUv*cells),vec2(12.9898,78.233)))*43758.5453));
+    vec2 glyphUv=vec2((local.x+bit)*.5,local.y);
+    float glyph=texture2D(tGlyphs,glyphUv).r;
+    gl_FragColor=vec4(uColor,glyph*max(light,.52)*uFade*sceneSample.a);
   }
 `;
 
 function createGlyphTexture(){
   const canvas=document.createElement('canvas');
-  canvas.width=1024;canvas.height=1024;
+  canvas.width=128;canvas.height=64;
   const glyphContext=canvas.getContext('2d');
-  const characters=' * _<>,  ./O#SF +';
-  glyphContext.clearRect(0,0,1024,1024);
-  glyphContext.fillStyle='#fff';glyphContext.font='72px monospace';
+  glyphContext.fillStyle='#000';glyphContext.fillRect(0,0,128,64);
+  glyphContext.fillStyle='#fff';glyphContext.font='500 52px "DM Mono",monospace';
   glyphContext.textAlign='center';glyphContext.textBaseline='middle';
-  [...characters].forEach((character,index)=>glyphContext.fillText(character,(index%16)*64+32,Math.floor(index/16)*64+32));
+  glyphContext.fillText('0',32,34);glyphContext.fillText('1',96,34);
   const texture=new THREE.CanvasTexture(canvas);
   texture.colorSpace=THREE.NoColorSpace;
   texture.minFilter=THREE.LinearFilter;
@@ -268,7 +265,7 @@ function initDragonfly(){
   modelScene=new THREE.Scene();
   modelCamera=new THREE.PerspectiveCamera(mobileMotion?16:11,1,.1,1000);
   modelCamera.position.set(0,0,7);
-  renderTarget=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,depthBuffer:true,stencilBuffer:false});
+  renderTarget=new THREE.WebGLRenderTarget(1,1,{depthBuffer:true,stencilBuffer:false});
   postScene=new THREE.Scene();postCamera=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
   asciiMaterial=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,uniforms:{tScene:{value:renderTarget.texture},tGlyphs:{value:createGlyphTexture()},uResolution:{value:new THREE.Vector2()},uTime:{value:0},uCell:{value:9},uFade:{value:1},uColor:{value:new THREE.Color(0xffffff)}},vertexShader,fragmentShader});
   postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),asciiMaterial));
