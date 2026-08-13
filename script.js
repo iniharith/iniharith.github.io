@@ -136,8 +136,8 @@ if (!reduceMotion && typeof window.Lenis !== 'undefined') {
 
 const heroCanvas = document.querySelector('#hero-scene');
 const aboutSection = document.querySelector('#about');
-const modelGallery = document.querySelector('#digital-fauna');
-const modelChapters = [...document.querySelectorAll('.model-chapter')];
+const modelShowcase = document.querySelector('#digital-fauna');
+const modelViewports = [...document.querySelectorAll('.model-viewport')];
 let renderer = null;
 let dragonfly = null;
 let dragonflyMotion = null;
@@ -160,6 +160,8 @@ let sceneEnd = 1;
 let sceneProgress = 0;
 const galleryModels = [];
 const galleryFiles = ['lantern','dragon','logo','flower','hive','fish'];
+let modelSpinDirection = 1;
+let previousScrollY = window.scrollY;
 const vertexShader = `varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position,1.0);}`;
 const fragmentShader = `
   precision highp float;
@@ -223,9 +225,9 @@ function prepareModel(gltf,name){
   gltf.scene.position.sub(center);
   root.add(gltf.scene);root.scale.setScalar((mobileMotion?2.65:3.2)/Math.max(size.x,size.y,size.z));root.visible=false;
   root.traverse((child)=>{if(child.isMesh){child.material=new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide});}});
-  const modelMixer=new THREE.AnimationMixer(gltf.scene);
+  const modelMixer=['flower','hive','fish'].includes(name)?new THREE.AnimationMixer(gltf.scene):null;
   let duration=1;
-  gltf.animations.forEach((clip)=>{modelMixer.clipAction(clip).play();duration=Math.max(duration,clip.duration);});
+  if(modelMixer)gltf.animations.forEach((clip)=>{modelMixer.clipAction(clip).play();duration=Math.max(duration,clip.duration);});
   modelScene.add(root);
   galleryModels.push({name,root,mixer:modelMixer,duration});
 }
@@ -258,28 +260,42 @@ function initDragonfly(){
 
 function drawScene(time=0,delta=0){
   if(!renderer||!dragonfly)return;
-  const galleryStart=modelGallery.offsetTop-window.innerHeight;
-  const galleryEnd=modelGallery.offsetTop+modelGallery.offsetHeight;
-  const inGallery=window.scrollY>=galleryStart&&window.scrollY<galleryEnd;
-  if(inGallery&&galleryModels.length){
+  const showcaseRect=modelShowcase.getBoundingClientRect();
+  const inShowcase=showcaseRect.bottom>0&&showcaseRect.top<window.innerHeight;
+  heroCanvas.classList.toggle('is-showcase',inShowcase);
+  if(inShowcase&&galleryModels.length){
     dragonfly.visible=false;
-    const galleryProgress=Math.min(.9999,Math.max(0,(window.scrollY-modelGallery.offsetTop)/modelGallery.offsetHeight));
-    const chapterIndex=Math.min(modelChapters.length-1,Math.floor(galleryProgress*modelChapters.length));
-    const chapterProgress=galleryProgress*modelChapters.length-chapterIndex;
-    galleryModels.forEach((entry)=>{
-      entry.root.visible=entry.name===galleryFiles[chapterIndex];
-      if(entry.root.visible){
-        entry.mixer.setTime(chapterProgress*entry.duration);
-        entry.root.rotation.y=(chapterProgress-.5)*.7+(cursorX-.5)*.25;
-        entry.root.rotation.x=(cursorY-.5)*-.12;
-      }
+    if(window.scrollY!==previousScrollY)modelSpinDirection=window.scrollY>previousScrollY?1:-1;
+    previousScrollY=window.scrollY;
+    modelCamera.fov=27;modelCamera.position.set(0,0,8);modelCamera.lookAt(0,0,0);
+    asciiMaterial.uniforms.uFade.value=1;asciiMaterial.uniforms.uTime.value=time*.001;
+    renderer.setRenderTarget(null);renderer.setScissorTest(false);renderer.clear();
+    modelViewports.forEach((viewport)=>{
+      const rect=viewport.getBoundingClientRect();
+      if(rect.bottom<=0||rect.top>=heroHeight)return;
+      const entry=galleryModels.find((model)=>model.name===viewport.dataset.model);
+      if(!entry)return;
+      galleryModels.forEach((model)=>{model.root.visible=model===entry;});
+      entry.root.rotation.y+=delta*.25*modelSpinDirection;
+      if(entry.mixer)entry.mixer.update(delta);
+      const ratio=mobileMotion?1:Math.min(window.devicePixelRatio||1,1.5);
+      const width=Math.max(1,Math.round(rect.width*ratio));const height=Math.max(1,Math.round(rect.height*ratio));
+      renderTarget.setSize(width,height);modelCamera.aspect=width/height;modelCamera.updateProjectionMatrix();
+      asciiMaterial.uniforms.uResolution.value.set(width,height);asciiMaterial.uniforms.uCell.value=(['dragon','flower','hive','fish'].includes(entry.name)?4:6)*ratio;
+      renderer.setRenderTarget(renderTarget);renderer.clear();renderer.render(modelScene,modelCamera);
+      renderer.setRenderTarget(null);renderer.setScissorTest(true);
+      const bottom=heroHeight-rect.bottom;
+      renderer.setViewport(rect.left,bottom,rect.width,rect.height);renderer.setScissor(rect.left,bottom,rect.width,rect.height);renderer.render(postScene,postCamera);
     });
-    modelCamera.fov=mobileMotion?32:26;modelCamera.position.set(0,0,8);modelCamera.lookAt(0,0,0);modelCamera.updateProjectionMatrix();
-    const edge=Math.min(1,chapterProgress/.08,(1-chapterProgress)/.08);
-    asciiMaterial.uniforms.uFade.value=Math.max(.15,edge);
+    renderer.setScissorTest(false);
+    return;
   }else{
     galleryModels.forEach((entry)=>{entry.root.visible=false;});
     dragonfly.visible=true;
+  const ratio=mobileMotion?1:Math.min(window.devicePixelRatio||1,1.5);
+  renderTarget.setSize(Math.max(1,heroWidth*ratio),Math.max(1,heroHeight*ratio));
+  asciiMaterial.uniforms.uResolution.value.set(heroWidth*ratio,heroHeight*ratio);
+  asciiMaterial.uniforms.uCell.value=6*ratio;
   modelCamera.fov=mobileMotion?16:11;modelCamera.updateProjectionMatrix();
   const targetProgress=Math.min(1,Math.max(0,window.scrollY/Math.max(1,sceneEnd-window.innerHeight*.35)));
   sceneProgress+=(targetProgress-sceneProgress)*(mobileMotion?.14:.1);
