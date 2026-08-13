@@ -207,7 +207,7 @@ function resizeHero(){
   renderTarget.setSize(Math.max(1,heroWidth*ratio),Math.max(1,heroHeight*ratio));
   modelCamera.aspect=heroWidth/heroHeight;modelCamera.updateProjectionMatrix();
   asciiMaterial.uniforms.uResolution.value.set(heroWidth*ratio,heroHeight*ratio);
-  asciiMaterial.uniforms.uCell.value=(mobileMotion?8:9)*ratio;
+  asciiMaterial.uniforms.uCell.value=6*ratio;
   sceneEnd=Math.max(1,aboutSection.offsetTop+aboutSection.offsetHeight);
 }
 
@@ -215,7 +215,7 @@ function initDragonfly(){
   renderer=new THREE.WebGLRenderer({canvas:heroCanvas,alpha:true,antialias:false,powerPreference:'high-performance'});
   renderer.setClearColor(0x000000,0);
   modelScene=new THREE.Scene();
-  modelCamera=new THREE.PerspectiveCamera(mobileMotion?34:28,1,.1,1000);
+  modelCamera=new THREE.PerspectiveCamera(mobileMotion?16:11,1,.1,1000);
   modelCamera.position.set(0,0,7);
   renderTarget=new THREE.WebGLRenderTarget(1,1,{depthBuffer:true});
   postScene=new THREE.Scene();postCamera=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
@@ -243,7 +243,13 @@ function drawScene(time=0,delta=0){
   const ease=sceneProgress*sceneProgress*(3.-2.*sceneProgress);
   mixer.setTime(ease*animationDuration);
   const cameraFollow=dragonfly.getObjectByName('camera-follow');const cameraLookAt=dragonfly.getObjectByName('camera-lookAt');
-  if(cameraFollow&&cameraLookAt){modelCamera.position.copy(cameraFollow.position);modelCamera.lookAt(cameraLookAt.position);}
+  if(cameraFollow&&cameraLookAt){
+    modelCamera.position.copy(cameraFollow.position);
+    // The portfolio title occupies more of the frame than the reference page,
+    // so move slightly toward the authored target while retaining its camera path.
+    modelCamera.position.lerp(cameraLookAt.position,mobileMotion?.12:.16);
+    modelCamera.lookAt(cameraLookAt.position);
+  }
   dragonfly.position.y=!mobileMotion&&ease>.5?(ease-.5)*9:0;
   dragonflyMotion.rotation.y=THREE.MathUtils.lerp(dragonflyMotion.rotation.y,(cursorX-.5)*.0025,.1);
   dragonflyMotion.rotation.x=THREE.MathUtils.lerp(dragonflyMotion.rotation.x,-(cursorY-.5)*.0015,.1);
