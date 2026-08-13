@@ -178,16 +178,12 @@ const fragmentShader = `
     vec2 sampleUv=(cell+.5)/cells;
     vec3 sceneColor=texture2D(tScene,sampleUv).rgb;
     float light=dot(sceneColor,vec3(.2126,.7152,.0722));
-    float shade=smoothstep(.04,.82,light);
     if(light<.025){gl_FragColor=vec4(0.0);return;}
     vec2 local=fract(vUv*cells);
     float bit=step(.5,fract(sin(dot(cell,vec2(12.9898,78.233))+floor(uTime*2.4))*43758.5453));
     vec2 glyphUv=vec2((local.x+bit)*.5,local.y);
     float glyph=texture2D(tGlyphs,glyphUv).r;
-    float spark=step(.985,fract(sin(dot(cell,vec2(39.346,11.135))+floor(uTime*3.0))*24634.634));
-    vec3 color=mix(uColor*.42,uColor,shade);
-    color=mix(color,vec3(1.0),spark*.35);
-    gl_FragColor=vec4(color,glyph*max(light,.55)*uFade);
+    gl_FragColor=vec4(uColor,glyph*max(light,.68)*uFade);
   }
 `;
 
@@ -275,7 +271,7 @@ function drawScene(time=0,delta=0){
       if(rect.bottom<=0||rect.top>=heroHeight)return;
       const entry=galleryModels.find((model)=>model.name===viewport.dataset.model);
       if(!entry)return;
-      asciiMaterial.uniforms.uColor.value.set(['lantern','logo'].includes(entry.name)?0x050505:0xffffff);
+      asciiMaterial.uniforms.uColor.value.set(['lantern','logo'].includes(entry.name)?0x000000:0xffffff);
       galleryModels.forEach((model)=>{model.root.visible=model===entry;});
       entry.root.rotation.y+=delta*.25*modelSpinDirection;
       entry.model.rotation.y=THREE.MathUtils.lerp(entry.model.rotation.y,window.scrollY*.005,.3);
