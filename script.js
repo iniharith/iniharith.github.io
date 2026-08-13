@@ -185,8 +185,8 @@ const fragmentShader = `
   void main(){
     vec2 division=uResolution/uCell;vec2 d=1.0/division;vec2 pixelizedUV=d*(floor(vUv/d)+.5);
     vec4 pixelizedColor=texture2D(tScene,pixelizedUV);float gray=dot(pixelizedColor.rgb,vec3(.299,.587,.114));
-    float charIndex=floor(gray*15.0);float charX=mod(charIndex,16.0);float charY=floor(charIndex/16.0);
-    vec2 charUV=mod(vUv*(division/16.0),1.0/16.0);charUV-=vec2(0.0,1.0/16.0);charUV+=vec2(charX,-charY)/16.0;
+    float charIndex=floor(gray*15.0);float charX=mod(charIndex,16.0);
+    vec2 local=fract(vUv*division);vec2 charUV=(vec2(charX,0.0)+vec2(local.x,1.0-local.y))/16.0;
     float glyph=texture2D(tGlyphs,charUV).r;float alpha=glyph*gray*pixelizedColor.a*uFade;
     gl_FragColor=vec4(uColor*glyph*gray,alpha);
   }
@@ -199,7 +199,9 @@ function createGlyphTexture(){
   const characters=' * _<>,  ./O#SF +';
   glyphContext.clearRect(0,0,1024,1024);glyphContext.fillStyle='#fff';glyphContext.font='72px monospace';
   glyphContext.textAlign='center';glyphContext.textBaseline='middle';
-  [...characters].forEach((character,index)=>glyphContext.fillText(character,(index%16)*64+32,Math.floor(index/16)*64+32));
+  for(let row=0;row<16;row++){
+    [...characters].slice(0,16).forEach((character,index)=>glyphContext.fillText(character,index*64+32,row*64+32));
+  }
   const texture=new THREE.CanvasTexture(canvas);
   texture.colorSpace=THREE.NoColorSpace;
   texture.minFilter=THREE.LinearFilter;
@@ -228,7 +230,7 @@ function prepareModel(gltf,name){
   const settings=gallerySettings[name];const scene=new THREE.Scene();const root=new THREE.Group();root.add(gltf.scene);scene.add(root);
   const material=createModelMaterial(name);gltf.scene.traverse((child)=>{if(child.isMesh)child.material=material;});
   const camera=new THREE.PerspectiveCamera(27,1,.1,1000);camera.position.set(0,settings.y||0,settings.z);camera.lookAt(0,0,0);
-  const target=new THREE.WebGLRenderTarget(settings.size,settings.size,{type:THREE.HalfFloatType,depthBuffer:true,stencilBuffer:false});
+  const target=new THREE.WebGLRenderTarget(settings.size,settings.size,{depthBuffer:true,stencilBuffer:false});
   const modelMixer=settings.animate?new THREE.AnimationMixer(gltf.scene):null;
   if(modelMixer)gltf.animations.forEach((clip)=>{const action=modelMixer.clipAction(clip);action.setLoop(THREE.LoopRepeat,Infinity);action.play();});
   galleryModels.push({name,scene,root,camera,mixer:modelMixer,target,settings});
