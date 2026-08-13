@@ -136,6 +136,8 @@ if (!reduceMotion && typeof window.Lenis !== 'undefined') {
 
 const heroCanvas = document.querySelector('#hero-scene');
 const aboutSection = document.querySelector('#about');
+const modelGallery = document.querySelector('#digital-fauna');
+const modelChapters = [...document.querySelectorAll('.model-chapter')];
 let renderer = null;
 let dragonfly = null;
 let dragonflyMotion = null;
@@ -156,6 +158,8 @@ let heroWidth = window.innerWidth;
 let heroHeight = window.innerHeight;
 let sceneEnd = 1;
 let sceneProgress = 0;
+const galleryModels = [];
+const galleryFiles = ['lantern','dragon','logo','flower','hive','fish'];
 const vertexShader = `varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position,1.0);}`;
 const fragmentShader = `
   precision highp float;
@@ -211,6 +215,21 @@ function resizeHero(){
   sceneEnd=Math.max(1,aboutSection.offsetTop+aboutSection.offsetHeight);
 }
 
+function prepareModel(gltf,name){
+  const root=new THREE.Group();
+  const bounds=new THREE.Box3().setFromObject(gltf.scene);
+  const center=bounds.getCenter(new THREE.Vector3());
+  const size=bounds.getSize(new THREE.Vector3());
+  gltf.scene.position.sub(center);
+  root.add(gltf.scene);root.scale.setScalar((mobileMotion?2.65:3.2)/Math.max(size.x,size.y,size.z));root.visible=false;
+  root.traverse((child)=>{if(child.isMesh){child.material=new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide});}});
+  const modelMixer=new THREE.AnimationMixer(gltf.scene);
+  let duration=1;
+  gltf.animations.forEach((clip)=>{modelMixer.clipAction(clip).play();duration=Math.max(duration,clip.duration);});
+  modelScene.add(root);
+  galleryModels.push({name,root,mixer:modelMixer,duration});
+}
+
 function initDragonfly(){
   renderer=new THREE.WebGLRenderer({canvas:heroCanvas,alpha:true,antialias:false,powerPreference:'high-performance'});
   renderer.setClearColor(0x000000,0);
@@ -232,12 +251,36 @@ function initDragonfly(){
     backWingLeft=gltf.scene.getObjectByName('BackWing-L');backWingRight=gltf.scene.getObjectByName('BackWing-R');
     frontWingLeft=gltf.scene.getObjectByName('FrontWing-L');frontWingRight=gltf.scene.getObjectByName('FrontWing-R');
   },undefined,(error)=>console.error('Dragonfly model failed to load:',error));
+  galleryFiles.forEach((name)=>loader.load(`assets/models/${name}.glb`,(gltf)=>prepareModel(gltf,name),undefined,(error)=>console.error(`${name} model failed to load:`,error)));
   resizeHero();
   let resizeTimer;window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(resizeHero,120);},{passive:true});
 }
 
 function drawScene(time=0,delta=0){
   if(!renderer||!dragonfly)return;
+  const galleryStart=modelGallery.offsetTop-window.innerHeight;
+  const galleryEnd=modelGallery.offsetTop+modelGallery.offsetHeight;
+  const inGallery=window.scrollY>=galleryStart&&window.scrollY<galleryEnd;
+  if(inGallery&&galleryModels.length){
+    dragonfly.visible=false;
+    const galleryProgress=Math.min(.9999,Math.max(0,(window.scrollY-modelGallery.offsetTop)/modelGallery.offsetHeight));
+    const chapterIndex=Math.min(modelChapters.length-1,Math.floor(galleryProgress*modelChapters.length));
+    const chapterProgress=galleryProgress*modelChapters.length-chapterIndex;
+    galleryModels.forEach((entry)=>{
+      entry.root.visible=entry.name===galleryFiles[chapterIndex];
+      if(entry.root.visible){
+        entry.mixer.setTime(chapterProgress*entry.duration);
+        entry.root.rotation.y=(chapterProgress-.5)*.7+(cursorX-.5)*.25;
+        entry.root.rotation.x=(cursorY-.5)*-.12;
+      }
+    });
+    modelCamera.fov=mobileMotion?32:26;modelCamera.position.set(0,0,8);modelCamera.lookAt(0,0,0);modelCamera.updateProjectionMatrix();
+    const edge=Math.min(1,chapterProgress/.08,(1-chapterProgress)/.08);
+    asciiMaterial.uniforms.uFade.value=Math.max(.15,edge);
+  }else{
+    galleryModels.forEach((entry)=>{entry.root.visible=false;});
+    dragonfly.visible=true;
+  modelCamera.fov=mobileMotion?16:11;modelCamera.updateProjectionMatrix();
   const targetProgress=Math.min(1,Math.max(0,window.scrollY/Math.max(1,sceneEnd-window.innerHeight*.35)));
   sceneProgress+=(targetProgress-sceneProgress)*(mobileMotion?.14:.1);
   const ease=sceneProgress*sceneProgress*(3.-2.*sceneProgress);
@@ -259,6 +302,8 @@ function drawScene(time=0,delta=0){
   if(backWingLeft){backWingLeft.rotation.z=THREE.MathUtils.lerp(backWingLeft.rotation.z,front,.1);backWingRight.rotation.z=THREE.MathUtils.lerp(backWingRight.rotation.z,-front,.1);frontWingLeft.rotation.z=THREE.MathUtils.lerp(frontWingLeft.rotation.z,back*.8,.1);frontWingRight.rotation.z=THREE.MathUtils.lerp(frontWingRight.rotation.z,-back*.8,.1);}
   asciiMaterial.uniforms.uTime.value=time*.001;
   asciiMaterial.uniforms.uFade.value=sceneProgress>.9?Math.max(0,(1-sceneProgress)/.1):1;
+  }
+  asciiMaterial.uniforms.uTime.value=time*.001;
   renderer.setRenderTarget(renderTarget);renderer.clear();renderer.render(modelScene,modelCamera);
   renderer.setRenderTarget(null);renderer.clear();renderer.render(postScene,postCamera);
 }

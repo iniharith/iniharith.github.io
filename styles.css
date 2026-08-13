@@ -88,6 +88,10 @@ button { color: inherit; font: inherit; }
 .marquee-track span { padding-right: .25em; font-size: clamp(70px, 12vw, 190px); font-weight: 600; line-height: 1.05; letter-spacing: -.07em; white-space: nowrap; }
 @keyframes marquee { to { transform: translateX(-50%); } }
 
+.model-gallery { position: relative; z-index: 2; color: var(--paper); background: transparent; }
+.model-chapter { height: 100svh; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 24px 28px; border-top: 1px solid rgba(241,240,234,.16); font: 11px var(--mono); letter-spacing: .08em; pointer-events: none; }
+.model-chapter p { margin: 0; color: rgba(241,240,234,.55); }
+
 .work { position: relative; padding-bottom: 150px; }
 .work-intro { display: grid; grid-template-columns: 3fr 1fr; gap: 10vw; align-items: end; padding: 90px 0 100px; }
 .work-intro p { margin: 0 0 8px; font-size: 18px; line-height: 1.45; }
@@ -192,6 +196,8 @@ button { color: inherit; font: inherit; }
   .about-copy { grid-template-columns: 1fr; padding: 65px 0 45px; }
   .about-grid { grid-template-columns: 1fr; gap: 55px; margin-left: 0; padding-bottom: 80px; }
   .statement { margin: 0 -16px; }
+  .model-chapter { padding: 0 16px 20px; }
+  .model-chapter p { max-width: 48%; text-align: right; }
   .work-intro { grid-template-columns: 1fr; padding: 65px 0; }
   .project a { grid-template-columns: 36px 1fr auto; min-height: 125px; }
   .project-stack, .project-year { display: none; }
