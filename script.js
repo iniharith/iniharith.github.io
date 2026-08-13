@@ -132,24 +132,26 @@ if (!reduceMotion && typeof window.Lenis !== 'undefined') {
 
 const heroCanvas = document.querySelector('#hero-scene');
 let context = null;
-let glyphs = [];
+let fireflies = [];
 let heroWidth = 0;
 let heroHeight = 0;
 let heroVisible = true;
 let lastSceneDraw = 0;
 
-function buildGlyphs() {
-  const count = mobileMotion ? 18 : 42;
-  glyphs = Array.from({ length: count }, () => ({
+function buildFireflies() {
+  const count = mobileMotion ? 16 : 34;
+  fireflies = Array.from({ length: count }, (_, index) => ({
     x: Math.random() * heroWidth,
     y: Math.random() * heroHeight,
-    size: 7 + Math.random() * 18,
-    speed: 0.12 + Math.random() * 0.4,
-    sway: (Math.random() - 0.5) * 26,
+    size: 1.1 + Math.random() * 2.3,
+    speed: 0.08 + Math.random() * 0.22,
+    driftX: (Math.random() - 0.5) * 0.16,
+    sway: 12 + Math.random() * 36,
     phase: Math.random() * Math.PI * 2,
-    alpha: 0.14 + Math.random() * 0.55,
-    char: Math.random() < 0.5 ? '0' : '1',
-    paper: Math.random() < 0.15
+    pulse: 0.0008 + Math.random() * 0.0015,
+    alpha: 0.28 + Math.random() * 0.58,
+    depth: 0.55 + Math.random() * 0.8,
+    bit: index % 3 === 0 ? (Math.random() < 0.5 ? '0' : '1') : ''
   }));
 }
 
@@ -160,7 +162,7 @@ function resizeHero() {
   heroCanvas.width = heroWidth * ratio;
   heroCanvas.height = heroHeight * ratio;
   context.setTransform(ratio, 0, 0, ratio, 0, 0);
-  buildGlyphs();
+  buildFireflies();
 }
 
 function drawFog(time) {
@@ -182,18 +184,33 @@ function drawFog(time) {
   });
 }
 
-function drawGlyph(glyph) {
-  const swayX = Math.sin(glyph.phase + performance.now() * 0.0005) * glyph.sway;
+function drawFirefly(firefly, time) {
+  const pulse = 0.45 + 0.55 * Math.sin(time * firefly.pulse + firefly.phase);
+  const swayX = Math.sin(firefly.phase + time * 0.00022) * firefly.sway;
+  const wing = Math.sin(time * 0.013 + firefly.phase) * 2.4;
   context.save();
-  context.translate(glyph.x + swayX, glyph.y);
-  context.globalAlpha = glyph.alpha;
-  context.fillStyle = glyph.paper ? 'rgba(241,240,234,0.55)' : 'rgba(199,255,22,0.95)';
-  context.shadowColor = 'rgba(199,255,22,0.75)';
-  context.shadowBlur = mobileMotion ? 0 : glyph.size * 0.6;
-  context.font = `500 ${Math.max(9, glyph.size)}px "DM Mono", monospace`;
-  context.textAlign = 'center';
-  context.textBaseline = 'middle';
-  context.fillText(glyph.char, 0, 0);
+  context.translate(firefly.x + swayX, firefly.y);
+  context.globalAlpha = firefly.alpha * pulse;
+  if (!mobileMotion) {
+    context.fillStyle = 'rgba(225,255,145,.16)';
+    context.beginPath();
+    context.ellipse(-3.5, wing, 4.8 * firefly.depth, 1.4, -.45, 0, Math.PI * 2);
+    context.ellipse(3.5, -wing, 4.8 * firefly.depth, 1.4, .45, 0, Math.PI * 2);
+    context.fill();
+  }
+  context.shadowColor = 'rgba(199,255,22,.95)';
+  context.shadowBlur = mobileMotion ? 7 : 12 * firefly.depth;
+  context.fillStyle = '#dcff6d';
+  context.beginPath();
+  context.arc(0, 0, firefly.size * firefly.depth, 0, Math.PI * 2);
+  context.fill();
+  if (firefly.bit && pulse > .84) {
+    context.shadowBlur = 0;
+    context.globalAlpha = firefly.alpha * .55;
+    context.fillStyle = '#c7ff16';
+    context.font = `500 ${7 + firefly.depth * 2}px "DM Mono", monospace`;
+    context.fillText(firefly.bit, 7, -6);
+  }
   context.restore();
 }
 
@@ -205,14 +222,15 @@ function drawScene(time = 0) {
   context.clearRect(0, 0, heroWidth, heroHeight);
   context.save();
   context.translate((cursorX - 0.5) * 22, (cursorY - 0.5) * 22);
-  drawFog(time);
-  glyphs.forEach((glyph) => {
-    glyph.y -= glyph.speed;
-    if (glyph.y < -40) {
-      glyph.y = heroHeight + 40;
-      glyph.x = Math.random() * heroWidth;
+  if (!mobileMotion) drawFog(time);
+  fireflies.forEach((firefly) => {
+    firefly.y -= firefly.speed * firefly.depth;
+    firefly.x += firefly.driftX;
+    if (firefly.y < -24 || firefly.x < -60 || firefly.x > heroWidth + 60) {
+      firefly.y = heroHeight + 24;
+      firefly.x = Math.random() * heroWidth;
     }
-    drawGlyph(glyph);
+    drawFirefly(firefly, time);
   });
   context.restore();
 }
