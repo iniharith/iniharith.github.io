@@ -161,7 +161,7 @@ const galleryModels = [];
 const galleryFiles = ['lantern','dragon','logo','flower','hive','fish'];
 const gallerySettings = {
   lantern:{size:1024,z:100,cell:6,animate:false},dragon:{size:1024,z:34,y:3.2,cell:4,animate:false},
-  flower:{size:512,z:10,cell:4,animate:true},hive:{size:512,z:35,cell:4,animate:true},
+  flower:{size:512,z:14,cell:4,animate:true},hive:{size:512,z:35,cell:4,animate:true},
   fish:{size:512,z:11,cell:4,animate:true},logo:{size:512,z:13,cell:6,animate:false}
 };
 let modelSpinDirection = 1;
@@ -181,14 +181,16 @@ const fragmentShader = `
   uniform float uCell;
   uniform float uFade;
   uniform vec3 uColor;
+  uniform float uBlack;
   varying vec2 vUv;
   void main(){
     vec2 division=uResolution/uCell;vec2 d=1.0/division;vec2 pixelizedUV=d*(floor(vUv/d)+.5);
     vec4 pixelizedColor=texture2D(tScene,pixelizedUV);float gray=dot(pixelizedColor.rgb,vec3(.299,.587,.114));
     float charIndex=floor(gray*15.0);float charX=mod(charIndex,16.0);
     vec2 local=fract(vUv*division);vec2 charUV=(vec2(charX,0.0)+vec2(local.x,1.0-local.y))/16.0;
-    float glyph=texture2D(tGlyphs,charUV).r;float alpha=glyph*gray*pixelizedColor.a*uFade;
-    gl_FragColor=vec4(uColor*glyph*gray,alpha);
+    float glyph=texture2D(tGlyphs,charUV).r;
+    float alpha=mix(pixelizedColor.a,glyph*max(gray,.38)*pixelizedColor.a,uBlack)*uFade;
+    gl_FragColor=vec4(uColor*glyph*max(gray,.72),alpha);
   }
 `;
 
@@ -232,7 +234,10 @@ function prepareModel(gltf,name){
   const camera=new THREE.PerspectiveCamera(27,1,.1,1000);camera.position.set(0,settings.y||0,settings.z);camera.lookAt(0,0,0);
   const target=new THREE.WebGLRenderTarget(settings.size,settings.size,{depthBuffer:true,stencilBuffer:false});
   const modelMixer=settings.animate?new THREE.AnimationMixer(gltf.scene):null;
-  if(modelMixer)gltf.animations.forEach((clip)=>{const action=modelMixer.clipAction(clip);action.setLoop(THREE.LoopRepeat,Infinity);action.play();});
+  if(modelMixer){
+    gltf.animations.forEach((clip)=>{const action=modelMixer.clipAction(clip);action.setLoop(THREE.LoopRepeat,Infinity);action.play();});
+    modelMixer.setTime(0);
+  }
   galleryModels.push({name,scene,root,camera,mixer:modelMixer,target,settings});
 }
 
@@ -244,7 +249,7 @@ function initDragonfly(){
   modelCamera.position.set(0,0,7);
   renderTarget=new THREE.WebGLRenderTarget(1,1,{depthBuffer:true});
   postScene=new THREE.Scene();postCamera=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
-  asciiMaterial=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,uniforms:{tScene:{value:renderTarget.texture},tGlyphs:{value:createGlyphTexture()},uResolution:{value:new THREE.Vector2()},uTime:{value:0},uCell:{value:9},uFade:{value:1},uColor:{value:new THREE.Color(0xffffff)}},vertexShader,fragmentShader});
+  asciiMaterial=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,uniforms:{tScene:{value:renderTarget.texture},tGlyphs:{value:createGlyphTexture()},uResolution:{value:new THREE.Vector2()},uTime:{value:0},uCell:{value:9},uFade:{value:1},uColor:{value:new THREE.Color(0xffffff)},uBlack:{value:0}},vertexShader,fragmentShader});
   postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),asciiMaterial));
   const draco=new DRACOLoader();draco.setDecoderPath('assets/draco/');draco.setDecoderConfig({type:'wasm'});
   const loader=new GLTFLoader();loader.setDRACOLoader(draco);
@@ -280,14 +285,15 @@ function drawScene(time=0,delta=0){
       if(rect.bottom<=0||rect.top>=heroHeight)return;
       const entry=galleryModels.find((model)=>model.name===viewport.dataset.model);
       if(!entry)return;
-      asciiMaterial.uniforms.uColor.value.set(['lantern','logo'].includes(entry.name)?0x000000:0xffffff);
+      const black=['lantern','logo'].includes(entry.name);
+      asciiMaterial.uniforms.uColor.value.set(black?0x000000:0xffffff);asciiMaterial.uniforms.uBlack.value=black?1:0;
       entry.scene.rotation.y+=delta*.25*modelSpinDirection;
       entry.root.rotation.y=THREE.MathUtils.lerp(entry.root.rotation.y,window.scrollY*.005,.3);
       if(entry.mixer)entry.mixer.update(delta);
       const ratio=mobileMotion?1:Math.min(window.devicePixelRatio||1,1.5);
       const width=Math.max(1,Math.round(rect.width*ratio));const height=Math.max(1,Math.round(rect.height*ratio));
       entry.camera.aspect=1;entry.camera.updateProjectionMatrix();
-      asciiMaterial.uniforms.tScene.value=entry.target.texture;asciiMaterial.uniforms.uResolution.value.set(width,height);asciiMaterial.uniforms.uCell.value=entry.settings.cell*ratio;
+      asciiMaterial.uniforms.tScene.value=entry.target.texture;asciiMaterial.uniforms.uResolution.value.set(width,height);asciiMaterial.uniforms.uCell.value=(mobileMotion?Math.max(3,entry.settings.cell-1):entry.settings.cell)*ratio;
       renderer.setRenderTarget(entry.target);renderer.clear();renderer.render(entry.scene,entry.camera);
       renderer.setRenderTarget(null);renderer.setScissorTest(true);
       const bottom=heroHeight-rect.bottom;
@@ -303,6 +309,7 @@ function drawScene(time=0,delta=0){
   asciiMaterial.uniforms.tScene.value=renderTarget.texture;
   asciiMaterial.uniforms.uCell.value=6*ratio;
   asciiMaterial.uniforms.uColor.value.set(0xffffff);
+  asciiMaterial.uniforms.uBlack.value=0;
   modelCamera.fov=mobileMotion?16:11;modelCamera.updateProjectionMatrix();
   const targetProgress=Math.min(1,Math.max(0,window.scrollY/Math.max(1,sceneEnd-window.innerHeight*.35)));
   sceneProgress+=(targetProgress-sceneProgress)*(mobileMotion?.14:.1);
