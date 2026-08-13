@@ -189,7 +189,7 @@ const fragmentShader = `
   void main(){
     vec2 division=uResolution/uCell;vec2 d=1.0/division;vec2 pixelizedUV=d*(floor(vUv/d)+.5);
     vec4 pixelizedColor=texture2D(tScene,pixelizedUV);float gray=clamp(dot(pixelizedColor.rgb,vec3(.299,.587,.114))*uLuminanceBoost,0.0,1.0);
-    float charIndex=floor(gray*15.0);float charX=mod(charIndex,16.0);
+    float charIndex=floor(gray*14.0);float charX=mod(charIndex,16.0);
     vec2 local=fract(vUv*division);vec2 charUV=(vec2(charX,0.0)+vec2(local.x,1.0-local.y))/16.0;
     float glyph=texture2D(tGlyphs,charUV).r;
     float alpha=mix(pixelizedColor.a,glyph*max(gray,.38)*pixelizedColor.a,uBlack)*uFade;
@@ -242,8 +242,12 @@ function prepareModel(gltf,name){
     modelMixer.setTime(0);
   }
   scene.updateMatrixWorld(true);
-  const cameraTarget=name==='fish'?new THREE.Box3().setFromObject(root).getCenter(new THREE.Vector3()):new THREE.Vector3();
-  camera.position.set(cameraTarget.x,cameraTarget.y+(settings.y||0),cameraTarget.z+settings.z);camera.lookAt(cameraTarget);
+  const fitToBounds=['flower','fish'].includes(name);
+  const bounds=fitToBounds?new THREE.Box3().setFromObject(root):null;
+  const cameraTarget=bounds?bounds.getCenter(new THREE.Vector3()):new THREE.Vector3();
+  const boundsSize=bounds?bounds.getSize(new THREE.Vector3()):null;
+  const fitDistance=boundsSize?Math.max(boundsSize.x,boundsSize.y)*.5/Math.tan(THREE.MathUtils.degToRad(27)*.5)*1.55:settings.z;
+  camera.position.set(cameraTarget.x,cameraTarget.y+(settings.y||0),cameraTarget.z+fitDistance);camera.lookAt(cameraTarget);
   galleryModels.push({name,scene,root,camera,mixer:modelMixer,target:renderTarget,settings});
 }
 
