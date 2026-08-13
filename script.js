@@ -137,7 +137,7 @@ if (!reduceMotion && typeof window.Lenis !== 'undefined') {
 const heroCanvas = document.querySelector('#hero-scene');
 const aboutSection = document.querySelector('#about');
 const modelShowcase = document.querySelector('#digital-fauna');
-const contactLogo = document.querySelector('.contact-logo');
+const contactModel = document.querySelector('.contact-model');
 const modelViewports = [...document.querySelectorAll('.model-viewport')];
 let renderer = null;
 let dragonfly = null;
@@ -177,7 +177,8 @@ const fragmentShader = `
     vec2 cells=floor(uResolution/uCell);
     vec2 cell=floor(vUv*cells);
     vec2 sampleUv=(cell+.5)/cells;
-    float light=texture2D(tScene,sampleUv).r;
+    vec3 sceneColor=texture2D(tScene,sampleUv).rgb;
+    float light=dot(sceneColor,vec3(.2126,.7152,.0722));
     if(light<.025){gl_FragColor=vec4(0.0);return;}
     vec2 local=fract(vUv*cells);
     float bit=step(.5,fract(sin(dot(cell,vec2(12.9898,78.233))+floor(uTime*2.4))*43758.5453));
@@ -225,7 +226,7 @@ function prepareModel(gltf,name){
   const size=bounds.getSize(new THREE.Vector3());
   gltf.scene.position.sub(center);
   root.add(gltf.scene);root.scale.setScalar((mobileMotion?2.65:3.2)/Math.max(size.x,size.y,size.z));root.visible=false;
-  root.traverse((child)=>{if(child.isMesh){child.material=new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide});}});
+  root.traverse((child)=>{if(child.isMesh){child.material=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.68,metalness:.08,side:THREE.DoubleSide});}});
   const modelMixer=['flower','hive','fish'].includes(name)?new THREE.AnimationMixer(gltf.scene):null;
   let duration=1;
   if(modelMixer)gltf.animations.forEach((clip)=>{modelMixer.clipAction(clip).play();duration=Math.max(duration,clip.duration);});
@@ -237,6 +238,9 @@ function initDragonfly(){
   renderer=new THREE.WebGLRenderer({canvas:heroCanvas,alpha:true,antialias:false,powerPreference:'high-performance'});
   renderer.setClearColor(0x000000,0);
   modelScene=new THREE.Scene();
+  modelScene.add(new THREE.HemisphereLight(0xffffff,0x101010,1.15));
+  const keyLight=new THREE.DirectionalLight(0xffffff,3.2);keyLight.position.set(-4,6,7);modelScene.add(keyLight);
+  const rimLight=new THREE.DirectionalLight(0xc7ff16,1.7);rimLight.position.set(5,-1,-4);modelScene.add(rimLight);
   modelCamera=new THREE.PerspectiveCamera(mobileMotion?16:11,1,.1,1000);
   modelCamera.position.set(0,0,7);
   renderTarget=new THREE.WebGLRenderTarget(1,1,{depthBuffer:true});
@@ -247,7 +251,7 @@ function initDragonfly(){
   const loader=new GLTFLoader();loader.setDRACOLoader(draco);
   loader.load('assets/models/dragonfly.glb',(gltf)=>{
     dragonfly=new THREE.Group();dragonflyMotion=new THREE.Group();dragonflyMotion.add(gltf.scene);dragonfly.add(dragonflyMotion);
-    dragonfly.traverse((child)=>{if(child.isMesh){child.material=new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide});}});
+    dragonfly.traverse((child)=>{if(child.isMesh){child.material=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.65,metalness:.08,side:THREE.DoubleSide});}});
     modelScene.add(dragonfly);
     mixer=new THREE.AnimationMixer(gltf.scene);
     if(gltf.animations[0]){const action=mixer.clipAction(gltf.animations[0]);action.play();animationDuration=gltf.animations[0].duration;mixer.setTime(0);}
@@ -262,8 +266,8 @@ function initDragonfly(){
 function drawScene(time=0,delta=0){
   if(!renderer||!dragonfly)return;
   const showcaseRect=modelShowcase.getBoundingClientRect();
-  const contactLogoRect=contactLogo.getBoundingClientRect();
-  const inShowcase=(showcaseRect.bottom>0&&showcaseRect.top<window.innerHeight)||(contactLogoRect.bottom>0&&contactLogoRect.top<window.innerHeight);
+  const contactModelRect=contactModel.getBoundingClientRect();
+  const inShowcase=(showcaseRect.bottom>0&&showcaseRect.top<window.innerHeight)||(contactModelRect.bottom>0&&contactModelRect.top<window.innerHeight);
   heroCanvas.classList.toggle('is-showcase',inShowcase);
   if(inShowcase&&galleryModels.length){
     dragonfly.visible=false;
