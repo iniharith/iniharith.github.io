@@ -1,3 +1,7 @@
+import * as THREE from 'three';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const menuButton = document.querySelector('.menu-toggle');
@@ -132,202 +136,144 @@ if (!reduceMotion && typeof window.Lenis !== 'undefined') {
 
 const heroCanvas = document.querySelector('#hero-scene');
 const aboutSection = document.querySelector('#about');
-let context = null;
-let dragonflyPoints = [];
-let heroWidth = 0;
-let heroHeight = 0;
+let renderer = null;
+let dragonfly = null;
+let dragonflyMotion = null;
+let mixer = null;
+let animationDuration = 1;
+let wingPhase = 0;
+let backWingLeft = null;
+let backWingRight = null;
+let frontWingLeft = null;
+let frontWingRight = null;
+let renderTarget = null;
+let asciiMaterial = null;
+let modelScene = null;
+let modelCamera = null;
+let postScene = null;
+let postCamera = null;
+let heroWidth = window.innerWidth;
+let heroHeight = window.innerHeight;
 let sceneEnd = 1;
 let sceneProgress = 0;
-
-function addDragonflyPoint(x, y, z, alpha = 1) {
-  dragonflyPoints.push({ x, y, z, alpha, bit: Math.random() < .5 ? '0' : '1' });
-}
-
-function buildDragonfly() {
-  dragonflyPoints = [];
-  const spanSteps = mobileMotion ? 36 : 44;
-  const chordSteps = mobileMotion ? 10 : 13;
-
-  // Dense wing membranes built from a fine halftone mesh so the silhouette
-  // reads as a soft dot-matrix render rather than a sparse wireframe.
-  [-1, 1].forEach((side) => {
-    [
-      { root: -.28, sweep: -.92, length: 3.05, width: .7, curve: -.32 },
-      { root: .08, sweep: .72, length: 2.72, width: .82, curve: .25 }
-    ].forEach((wing, wingIndex) => {
-      for (let spanIndex = 1; spanIndex <= spanSteps; spanIndex += 1) {
-        const span = spanIndex / spanSteps;
-        const rows = Math.max(2, Math.round(Math.sin(Math.PI * span) * chordSteps));
-        for (let row = -rows; row <= rows; row += 1) {
-          const chord = row / rows * Math.sin(Math.PI * span) * wing.width;
-          const jitter = (Math.random() - .5) * .02;
-          const x = side * (.18 + span * wing.length) + jitter;
-          const y = wing.root + span * wing.sweep + Math.sin(span * Math.PI) * wing.curve + chord;
-          const z = Math.sin(span * Math.PI) * (wingIndex ? -.08 : .1) + chord * .12;
-          const edgeFade = 1 - Math.abs(row / rows);
-          addDragonflyPoint(x, y, z, .22 + edgeFade * .58);
-          // Fine venation dust doubles local density along the leading edge,
-          // echoing the grainy halftone texture of the reference scene. Kept
-          // on mobile too (at a lower rate) since the reference is just as
-          // grainy on a phone screen — only frame rate governs the split.
-          if (Math.random() < (mobileMotion ? .22 : .35)) {
-            addDragonflyPoint(x + jitter, y + (Math.random() - .5) * .05, z, .1 + edgeFade * .3);
-          }
-        }
-      }
-    });
-  });
-
-  // Ringed thorax and long segmented abdomen.
-  const bodySegments = mobileMotion ? 56 : 66;
-  const ringPoints = mobileMotion ? 11 : 13;
-  for (let segment = 0; segment < bodySegments; segment += 1) {
-    const t = segment / (bodySegments - 1);
-    const y = -1 + t * 4.45;
-    const radius = t < .3 ? .24 + Math.sin(t / .3 * Math.PI) * .28 : Math.max(.035, .18 * (1 - (t - .3) / .7));
-    for (let ring = 0; ring < ringPoints; ring += 1) {
-      const angle = ring / ringPoints * Math.PI * 2;
-      addDragonflyPoint(Math.cos(angle) * radius, y, Math.sin(angle) * radius, .5 + (ring % 3) * .18);
-    }
+const vertexShader = `varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position,1.0);}`;
+const fragmentShader = `
+  precision highp float;
+  uniform sampler2D tScene;
+  uniform sampler2D tGlyphs;
+  uniform vec2 uResolution;
+  uniform float uTime;
+  uniform float uCell;
+  uniform float uFade;
+  varying vec2 vUv;
+  void main(){
+    vec2 cells=floor(uResolution/uCell);
+    vec2 cell=floor(vUv*cells);
+    vec2 sampleUv=(cell+.5)/cells;
+    float light=texture2D(tScene,sampleUv).r;
+    if(light<.025){gl_FragColor=vec4(0.0);return;}
+    vec2 local=fract(vUv*cells);
+    float bit=step(.5,fract(sin(dot(cell,vec2(12.9898,78.233))+floor(uTime*2.4))*43758.5453));
+    vec2 glyphUv=vec2((local.x+bit)*.5,local.y);
+    float glyph=texture2D(tGlyphs,glyphUv).r;
+    float spark=step(.985,fract(sin(dot(cell,vec2(39.346,11.135))+floor(uTime*3.0))*24634.634));
+    vec3 paper=vec3(.945,.941,.918);
+    vec3 acid=vec3(.78,1.0,.086);
+    vec3 color=mix(paper,acid,spark);
+    gl_FragColor=vec4(color,glyph*light*uFade);
   }
+`;
 
-  const headRings = mobileMotion ? 7 : 8;
-  for (let ring = 0; ring < headRings; ring += 1) {
-    const latitude = (ring / (headRings - 1) - .5) * Math.PI;
-    const radius = Math.cos(latitude) * .34;
-    const y = -1.28 + Math.sin(latitude) * .28;
-    const points = mobileMotion ? 11 : 14;
-    for (let index = 0; index < points; index += 1) {
-      const angle = index / points * Math.PI * 2;
-      addDragonflyPoint(Math.cos(angle) * radius, y, Math.sin(angle) * radius, .74);
-    }
-  }
-
-  // Sparse diagonal trail echoes the reference scene without obscuring the insect.
-  const trailCount = mobileMotion ? 65 : 90;
-  for (let index = 0; index < trailCount; index += 1) {
-    const t = index / trailCount;
-    addDragonflyPoint(-3.6 + t * 7.2, -2.4 + t * 4.8, -.55, .05 + t * .18);
-  }
+function createGlyphTexture(){
+  const canvas=document.createElement('canvas');
+  canvas.width=128;canvas.height=64;
+  const glyphContext=canvas.getContext('2d');
+  glyphContext.fillStyle='#000';glyphContext.fillRect(0,0,128,64);
+  glyphContext.fillStyle='#fff';glyphContext.font='500 52px "DM Mono",monospace';
+  glyphContext.textAlign='center';glyphContext.textBaseline='middle';
+  glyphContext.fillText('0',32,34);glyphContext.fillText('1',96,34);
+  const texture=new THREE.CanvasTexture(canvas);
+  texture.colorSpace=THREE.NoColorSpace;
+  texture.minFilter=THREE.LinearFilter;
+  texture.magFilter=THREE.LinearFilter;
+  return texture;
 }
 
-function resizeHero() {
-  const ratio = mobileMotion ? Math.min(window.devicePixelRatio || 1, 1.4) : Math.min(window.devicePixelRatio || 1, 1.5);
-  heroWidth = heroCanvas.clientWidth;
-  heroHeight = heroCanvas.clientHeight;
-  heroCanvas.width = heroWidth * ratio;
-  heroCanvas.height = heroHeight * ratio;
-  context.setTransform(ratio, 0, 0, ratio, 0, 0);
-  sceneEnd = Math.max(1, aboutSection.offsetTop + aboutSection.offsetHeight);
-  buildDragonfly();
+function resizeHero(){
+  if(!renderer)return;
+  heroWidth=window.innerWidth;heroHeight=window.innerHeight;
+  const ratio=mobileMotion?1:Math.min(window.devicePixelRatio||1,1.5);
+  renderer.setPixelRatio(ratio);renderer.setSize(heroWidth,heroHeight,false);
+  renderTarget.setSize(Math.max(1,heroWidth*ratio),Math.max(1,heroHeight*ratio));
+  modelCamera.aspect=heroWidth/heroHeight;modelCamera.updateProjectionMatrix();
+  asciiMaterial.uniforms.uResolution.value.set(heroWidth*ratio,heroHeight*ratio);
+  asciiMaterial.uniforms.uCell.value=(mobileMotion?8:9)*ratio;
+  sceneEnd=Math.max(1,aboutSection.offsetTop+aboutSection.offsetHeight);
 }
 
-function rotatePoint(point, rotateX, rotateY, rotateZ) {
-  const cosX = Math.cos(rotateX);
-  const sinX = Math.sin(rotateX);
-  const cosY = Math.cos(rotateY);
-  const sinY = Math.sin(rotateY);
-  const cosZ = Math.cos(rotateZ);
-  const sinZ = Math.sin(rotateZ);
-  const y1 = point.y * cosX - point.z * sinX;
-  const z1 = point.y * sinX + point.z * cosX;
-  const x2 = point.x * cosY + z1 * sinY;
-  const z2 = -point.x * sinY + z1 * cosY;
-  return {
-    x: x2 * cosZ - y1 * sinZ,
-    y: x2 * sinZ + y1 * cosZ,
-    z: z2
-  };
-}
-
-function drawScene(time = 0) {
-  if (window.scrollY > sceneEnd) {
-    context.clearRect(0, 0, heroWidth, heroHeight);
-    return;
-  }
-  context.clearRect(0, 0, heroWidth, heroHeight);
-  const targetProgress = Math.min(1, Math.max(0, window.scrollY / Math.max(1, sceneEnd - window.innerHeight * .35)));
-  sceneProgress += (targetProgress - sceneProgress) * (mobileMotion ? .14 : .1);
-  const ease = sceneProgress * sceneProgress * (3 - 2 * sceneProgress);
-  const idle = reduceMotion ? 0 : time * .00008;
-
-  // A bell-shaped "crop in" pass through the middle of the scroll range pushes
-  // the mesh in tight on the wing joints before pulling back out, matching the
-  // close-up-then-reveal rhythm of the reference scene.
-  const zoomWindow = Math.min(1, Math.max(0, (sceneProgress - .22) / .5));
-  const zoomBump = Math.sin(zoomWindow * Math.PI);
-
-  const rotateX = .08 - ease * .42 + Math.sin(idle * 1.7) * .025;
-  const rotateY = -.12 + ease * 1.12 + zoomBump * .18 + (cursorX - .5) * .09;
-  const rotateZ = -.46 + ease * .5 + Math.sin(idle) * .025;
-  // Mobile viewports are narrow and tall, so the mesh needs a bigger base
-  // scale relative to width to fill the portrait frame the way it does on
-  // the reference site's phone screenshots.
-  const scale = heroWidth * (mobileMotion ? .21 : .137) * (1 + ease * .2 + zoomBump * 1.35);
-  const centerX = heroWidth * (.51 + (cursorX - .5) * .018);
-  const centerY = heroHeight * (.51 - ease * .015 - zoomBump * .2 + (cursorY - .5) * .012);
-  const flip = Math.floor(time / 230);
-
-  context.textAlign = 'center';
-  context.textBaseline = 'middle';
-  const stageFade = sceneProgress > .9 ? (1 - sceneProgress) / .1 : 1;
-  const baseGlyphSize = mobileMotion ? 6.5 : 7.5;
-  let currentFontKey = '';
-
-  dragonflyPoints.forEach((point, index) => {
-    const rotated = rotatePoint(point, rotateX, rotateY, rotateZ);
-    const perspective = 1 / Math.max(.6, 1 + rotated.z * .12);
-    const x = centerX + rotated.x * scale * perspective;
-    const y = centerY + rotated.y * scale * perspective;
-    if (x < -12 || x > heroWidth + 12 || y < -12 || y > heroHeight + 12) return;
-    const flicker = .68 + Math.sin(time * .002 + index * .73) * .32;
-    const depth = Math.max(.16, Math.min(1, .74 - rotated.z * .16));
-
-    // Depth grades both glyph size and character weight so nearer dots read
-    // as bold "0"/"O" marks and distant ones fade to fine "."/":" grain —
-    // the halftone dot-matrix look of the reference, in this site's own mono font.
-    let glyph;
-    if (depth > .82) glyph = flicker > .5 ? '0' : 'O';
-    else if (depth > .6) glyph = flicker > .5 ? 'o' : 'v';
-    else if (depth > .4) glyph = flicker > .5 ? ':' : '.';
-    else glyph = '.';
-    const glyphSize = Math.max(3, baseGlyphSize * (.45 + depth * .95) * perspective);
-    const fontKey = Math.round(glyphSize * 2);
-    if (fontKey !== currentFontKey) {
-      context.font = `400 ${(fontKey / 2).toFixed(1)}px "DM Mono", monospace`;
-      currentFontKey = fontKey;
-    }
-
-    context.globalAlpha = point.alpha * flicker * depth * stageFade;
-    context.fillStyle = index % 53 === flip % 53 ? '#c7ff16' : 'rgba(241,240,234,.92)';
-    context.fillText(glyph, x, y);
-  });
-  context.globalAlpha = 1;
-}
-
-if (heroCanvas && heroCanvas.getContext) {
-  context = heroCanvas.getContext('2d');
-  let resizeTimer;
-  window.addEventListener('resize', () => {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(resizeHero, 120);
-  }, { passive: true });
+function initDragonfly(){
+  renderer=new THREE.WebGLRenderer({canvas:heroCanvas,alpha:true,antialias:false,powerPreference:'high-performance'});
+  renderer.setClearColor(0x000000,0);
+  modelScene=new THREE.Scene();
+  modelCamera=new THREE.PerspectiveCamera(mobileMotion?34:28,1,.1,1000);
+  modelCamera.position.set(0,0,7);
+  renderTarget=new THREE.WebGLRenderTarget(1,1,{depthBuffer:true});
+  postScene=new THREE.Scene();postCamera=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+  asciiMaterial=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,uniforms:{tScene:{value:renderTarget.texture},tGlyphs:{value:createGlyphTexture()},uResolution:{value:new THREE.Vector2()},uTime:{value:0},uCell:{value:9},uFade:{value:1}},vertexShader,fragmentShader});
+  postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),asciiMaterial));
+  const draco=new DRACOLoader();draco.setDecoderPath('assets/draco/');draco.setDecoderConfig({type:'wasm'});
+  const loader=new GLTFLoader();loader.setDRACOLoader(draco);
+  loader.load('assets/models/dragonfly.glb',(gltf)=>{
+    dragonfly=new THREE.Group();dragonflyMotion=new THREE.Group();dragonflyMotion.add(gltf.scene);dragonfly.add(dragonflyMotion);
+    dragonfly.traverse((child)=>{if(child.isMesh){child.material=new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide});}});
+    modelScene.add(dragonfly);
+    mixer=new THREE.AnimationMixer(gltf.scene);
+    if(gltf.animations[0]){const action=mixer.clipAction(gltf.animations[0]);action.play();animationDuration=gltf.animations[0].duration;mixer.setTime(0);}
+    backWingLeft=gltf.scene.getObjectByName('BackWing-L');backWingRight=gltf.scene.getObjectByName('BackWing-R');
+    frontWingLeft=gltf.scene.getObjectByName('FrontWing-L');frontWingRight=gltf.scene.getObjectByName('FrontWing-R');
+  },undefined,(error)=>console.error('Dragonfly model failed to load:',error));
   resizeHero();
+  let resizeTimer;window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(resizeHero,120);},{passive:true});
 }
 
+function drawScene(time=0,delta=0){
+  if(!renderer||!dragonfly)return;
+  const targetProgress=Math.min(1,Math.max(0,window.scrollY/Math.max(1,sceneEnd-window.innerHeight*.35)));
+  sceneProgress+=(targetProgress-sceneProgress)*(mobileMotion?.14:.1);
+  const ease=sceneProgress*sceneProgress*(3.-2.*sceneProgress);
+  mixer.setTime(ease*animationDuration);
+  const cameraFollow=dragonfly.getObjectByName('camera-follow');const cameraLookAt=dragonfly.getObjectByName('camera-lookAt');
+  if(cameraFollow&&cameraLookAt){modelCamera.position.copy(cameraFollow.position);modelCamera.lookAt(cameraLookAt.position);}
+  dragonfly.position.y=!mobileMotion&&ease>.5?(ease-.5)*9:0;
+  dragonflyMotion.rotation.y=THREE.MathUtils.lerp(dragonflyMotion.rotation.y,(cursorX-.5)*.0025,.1);
+  dragonflyMotion.rotation.x=THREE.MathUtils.lerp(dragonflyMotion.rotation.x,-(cursorY-.5)*.0015,.1);
+  wingPhase+=delta*(.5+19.5*(sceneProgress>.15?.85:0));
+  const boost=sceneProgress>.15?.85:0;const angle=THREE.MathUtils.degToRad(42+boost*200);
+  const back=Math.sin(wingPhase*(.1+boost))*angle*.3;const front=Math.sin(wingPhase*(.05+boost))*angle*.2;
+  if(backWingLeft){backWingLeft.rotation.z=THREE.MathUtils.lerp(backWingLeft.rotation.z,front,.1);backWingRight.rotation.z=THREE.MathUtils.lerp(backWingRight.rotation.z,-front,.1);frontWingLeft.rotation.z=THREE.MathUtils.lerp(frontWingLeft.rotation.z,back*.8,.1);frontWingRight.rotation.z=THREE.MathUtils.lerp(frontWingRight.rotation.z,-back*.8,.1);}
+  asciiMaterial.uniforms.uTime.value=time*.001;
+  asciiMaterial.uniforms.uFade.value=sceneProgress>.9?Math.max(0,(1-sceneProgress)/.1):1;
+  renderer.setRenderTarget(renderTarget);renderer.clear();renderer.render(modelScene,modelCamera);
+  renderer.setRenderTarget(null);renderer.clear();renderer.render(postScene,postCamera);
+}
+
+initDragonfly();
+
+let previousTime=performance.now();
 function loop(time) {
   if (lenis) lenis.raf(time);
+  const delta=Math.min(.05,(time-previousTime)/1000);previousTime=time;
   cursorX += (pointerX - cursorX) * 0.05;
   cursorY += (pointerY - cursorY) * 0.05;
   if (auroraGlobal) {
     auroraGlobal.style.transform = `translate3d(${(cursorX - 0.5) * -40}px, ${(cursorY - 0.5) * -40}px, 0)`;
   }
-  if (context && !document.hidden) drawScene(time);
+  if (renderer && !document.hidden) drawScene(time,delta);
   requestAnimationFrame(loop);
 }
 
 if (reduceMotion) {
-  if (context) drawScene(0);
+  requestAnimationFrame((time)=>drawScene(time,0));
   updateFluid();
 } else {
   requestAnimationFrame(loop);
