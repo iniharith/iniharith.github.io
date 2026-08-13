@@ -160,8 +160,8 @@ let sceneProgress = 0;
 const galleryModels = [];
 const galleryFiles = ['lantern','dragon','logo','flower','hive','fish'];
 const gallerySettings = {
-  lantern:{size:1024,z:100,cell:6,animate:false},dragon:{size:1024,z:34,y:3.2,cell:4,animate:false},
-  flower:{size:512,z:14,cell:4,animate:true},hive:{size:512,z:35,cell:4,animate:true},
+  lantern:{size:1024,z:100,cell:6,animate:false},dragon:{size:1024,z:42,y:0,cell:4,animate:false},
+  flower:{size:512,z:22,cell:4,animate:true},hive:{size:512,z:35,cell:4,animate:true},
   fish:{size:512,z:11,cell:4,animate:true},logo:{size:512,z:13,cell:6,animate:false}
 };
 let modelSpinDirection = 1;
@@ -190,7 +190,7 @@ const fragmentShader = `
     vec2 local=fract(vUv*division);vec2 charUV=(vec2(charX,0.0)+vec2(local.x,1.0-local.y))/16.0;
     float glyph=texture2D(tGlyphs,charUV).r;
     float alpha=mix(pixelizedColor.a,glyph*max(gray,.38)*pixelizedColor.a,uBlack)*uFade;
-    gl_FragColor=vec4(uColor*glyph*max(gray,.72),alpha);
+    gl_FragColor=vec4(uColor*glyph*max(gray,.88),alpha);
   }
 `;
 
@@ -225,20 +225,23 @@ function resizeHero(){
 
 function createModelMaterial(name){
   const branch=name==='branch';const logo=name==='logo';
-  return new THREE.ShaderMaterial({transparent:true,side:THREE.DoubleSide,uniforms:{uRemapColor:{value:branch?new THREE.Vector3(.35,.35,.35):logo?new THREE.Vector3(.9,.9,.9):new THREE.Vector3(.69,.9,.9)},uLightDir:{value:branch?new THREE.Vector3(0,.8,1):new THREE.Vector3(0,2,1)},uBrightness:{value:logo?1:branch?.5:.2},uNormalStrength:{value:branch?1.5:.5}},vertexShader:modelVertexShader,fragmentShader:modelFragmentShader});
+  return new THREE.ShaderMaterial({transparent:true,side:THREE.DoubleSide,uniforms:{uRemapColor:{value:branch?new THREE.Vector3(.35,.35,.35):logo?new THREE.Vector3(.9,.9,.9):new THREE.Vector3(.82,.98,.98)},uLightDir:{value:branch?new THREE.Vector3(0,.8,1):new THREE.Vector3(0,2,1)},uBrightness:{value:logo?1:branch?.5:.42},uNormalStrength:{value:branch?1.5:.62}},vertexShader:modelVertexShader,fragmentShader:modelFragmentShader});
 }
 
 function prepareModel(gltf,name){
   const settings=gallerySettings[name];const scene=new THREE.Scene();const root=new THREE.Group();root.add(gltf.scene);scene.add(root);
   const material=createModelMaterial(name);gltf.scene.traverse((child)=>{if(child.isMesh)child.material=material;});
-  const camera=new THREE.PerspectiveCamera(27,1,.1,1000);camera.position.set(0,settings.y||0,settings.z);camera.lookAt(0,0,0);
-  const target=new THREE.WebGLRenderTarget(settings.size,settings.size,{depthBuffer:true,stencilBuffer:false});
+  const camera=new THREE.PerspectiveCamera(27,1,.1,1000);
+  const renderTarget=new THREE.WebGLRenderTarget(settings.size,settings.size,{depthBuffer:true,stencilBuffer:false});
   const modelMixer=settings.animate?new THREE.AnimationMixer(gltf.scene):null;
   if(modelMixer){
     gltf.animations.forEach((clip)=>{const action=modelMixer.clipAction(clip);action.setLoop(THREE.LoopRepeat,Infinity);action.play();});
     modelMixer.setTime(0);
   }
-  galleryModels.push({name,scene,root,camera,mixer:modelMixer,target,settings});
+  scene.updateMatrixWorld(true);
+  const cameraTarget=name==='fish'?new THREE.Box3().setFromObject(root).getCenter(new THREE.Vector3()):new THREE.Vector3();
+  camera.position.set(cameraTarget.x,cameraTarget.y+(settings.y||0),cameraTarget.z+settings.z);camera.lookAt(cameraTarget);
+  galleryModels.push({name,scene,root,camera,mixer:modelMixer,target:renderTarget,settings});
 }
 
 function initDragonfly(){
