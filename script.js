@@ -137,6 +137,7 @@ if (!reduceMotion && typeof window.Lenis !== 'undefined') {
 const heroCanvas = document.querySelector('#hero-scene');
 const aboutSection = document.querySelector('#about');
 const modelShowcase = document.querySelector('#digital-fauna');
+const contactLogo = document.querySelector('.contact-logo');
 const modelViewports = [...document.querySelectorAll('.model-viewport')];
 let renderer = null;
 let dragonfly = null;
@@ -229,7 +230,7 @@ function prepareModel(gltf,name){
   let duration=1;
   if(modelMixer)gltf.animations.forEach((clip)=>{modelMixer.clipAction(clip).play();duration=Math.max(duration,clip.duration);});
   modelScene.add(root);
-  galleryModels.push({name,root,mixer:modelMixer,duration});
+  galleryModels.push({name,root,model:gltf.scene,mixer:modelMixer,duration});
 }
 
 function initDragonfly(){
@@ -261,7 +262,8 @@ function initDragonfly(){
 function drawScene(time=0,delta=0){
   if(!renderer||!dragonfly)return;
   const showcaseRect=modelShowcase.getBoundingClientRect();
-  const inShowcase=showcaseRect.bottom>0&&showcaseRect.top<window.innerHeight;
+  const contactLogoRect=contactLogo.getBoundingClientRect();
+  const inShowcase=(showcaseRect.bottom>0&&showcaseRect.top<window.innerHeight)||(contactLogoRect.bottom>0&&contactLogoRect.top<window.innerHeight);
   heroCanvas.classList.toggle('is-showcase',inShowcase);
   if(inShowcase&&galleryModels.length){
     dragonfly.visible=false;
@@ -277,6 +279,7 @@ function drawScene(time=0,delta=0){
       if(!entry)return;
       galleryModels.forEach((model)=>{model.root.visible=model===entry;});
       entry.root.rotation.y+=delta*.25*modelSpinDirection;
+      entry.model.rotation.y=THREE.MathUtils.lerp(entry.model.rotation.y,window.scrollY*.005,.3);
       if(entry.mixer)entry.mixer.update(delta);
       const ratio=mobileMotion?1:Math.min(window.devicePixelRatio||1,1.5);
       const width=Math.max(1,Math.round(rect.width*ratio));const height=Math.max(1,Math.round(rect.height*ratio));
