@@ -25,6 +25,7 @@
   <body>
     <div class="aurora aurora--global" aria-hidden="true"><span></span><span></span></div>
     <div class="noise" aria-hidden="true"></div>
+    <canvas id="hero-scene" aria-hidden="true"></canvas>
     <header class="site-header">
       <a class="brand" href="#home" aria-label="Ini Harith, back to top">
         <span class="brand-mark">IH</span>
@@ -58,7 +59,6 @@
 
     <main>
       <section class="hero" id="home">
-        <canvas id="hero-scene" aria-hidden="true"></canvas>
         <div class="hero-kicker reveal">
           <span class="status-dot"></span>
           <span>OPEN TO COLLABORATION</span>
@@ -110,6 +110,7 @@
           <h2 data-fluid>Projects built to be used.</h2>
           <p>A growing archive of commerce platforms, mobile tools, and independent experiments.</p>
         </div>
+        <div class="section-model section-model-feature" data-model="lantern" aria-hidden="true"></div>
 
         <div class="project-list">
           <article class="project reveal" data-project="commerce">
@@ -182,6 +183,11 @@
           </div>
           <span class="design-scroll-hint">SCROLL →</span>
         </div>
+        <div class="section-model-row" aria-hidden="true">
+          <div class="section-model" data-model="flower"></div>
+          <div class="section-model" data-model="hive"></div>
+          <div class="section-model" data-model="fish"></div>
+        </div>
         <div class="mockup-grid" data-parallax="0.15">
           <figure class="mockup-card mockup-card-tall reveal">
             <div class="mockup-image">
@@ -239,6 +245,7 @@
         <div class="approach-heading reveal" data-parallax="0.1">
           <h2 data-fluid>Curious by default.<br>Precise by practice.</h2>
         </div>
+        <div class="section-model section-model-feature" data-model="dragon" aria-hidden="true"></div>
         <div class="principles">
           <article class="principle reveal">
             <span>01 / DISCOVER</span>
@@ -258,14 +265,6 @@
         </div>
       </section>
 
-      <section class="model-showcase" id="digital-fauna" aria-label="Animated digital fauna">
-        <article class="model-page"><span>01 / LANTERN</span><div class="model-viewport" data-model="lantern" aria-hidden="true"></div><p>LIGHT IN MOTION</p></article>
-        <article class="model-page"><span>02 / DRAGON</span><div class="model-viewport" data-model="dragon" aria-hidden="true"></div><p>MYTH IN CODE</p></article>
-        <article class="model-page"><span>03 / FLOWER</span><div class="model-viewport" data-model="flower" aria-hidden="true"></div><p>GROW WITH INTENT</p></article>
-        <article class="model-page"><span>04 / HIVE</span><div class="model-viewport" data-model="hive" aria-hidden="true"></div><p>BUILD AS A SYSTEM</p></article>
-        <article class="model-page"><span>05 / FISH</span><div class="model-viewport" data-model="fish" aria-hidden="true"></div><p>MOVE WITH PURPOSE</p></article>
-      </section>
-
       <section class="contact" id="contact">
         <div class="contact-top reveal">
           <div class="section-label section-label-dark">
@@ -276,7 +275,7 @@
         </div>
         <a class="contact-cta reveal" href="https://github.com/iniharith" target="_blank" rel="noreferrer">
           <span>LET'S BUILD</span>
-          <span class="contact-model"><span class="model-viewport" data-model="logo" aria-hidden="true"></span><span class="contact-arrow">↗</span></span>
+          <span class="contact-model"><span class="section-model" data-model="logo" aria-hidden="true"></span><span class="contact-arrow">↗</span></span>
         </a>
         <nav class="social-links reveal" aria-label="Social media profiles">
           <a href="https://www.instagram.com/harith.ini?igsh=MXRydTQ1OGZuaXh1cw==" target="_blank" rel="noreferrer">

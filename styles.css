@@ -151,11 +151,10 @@ button { color: inherit; font: inherit; }
 .principle h3 { margin: auto 0 24px; font-size: clamp(27px, 2.5vw, 42px); font-weight: 500; line-height: 1; letter-spacing: -.045em; }
 .principle p { max-width: 390px; margin: 0; font-size: 15px; line-height: 1.5; }
 
-.model-showcase { position: relative; z-index: 2; color: var(--paper); background: transparent; }
-.model-viewport { position: relative; width: 100%; aspect-ratio: 1; pointer-events: none; }
-.model-page { position: relative; z-index: 4; min-height: 100svh; display: grid; grid-template-rows: auto 1fr auto; place-items: center; padding: 76px 24px 28px; border-top: 1px solid rgba(241,240,234,.18); }
-.model-page > span, .model-page > p { margin: 0; color: rgba(241,240,234,.58); font: 10px var(--mono); letter-spacing: .08em; }
-.model-page .model-viewport { width: min(62vh,484px,80vw); }
+.section-model { position: relative; z-index: 4; width: 100%; aspect-ratio: 1; pointer-events: none; }
+.section-model-feature { width: min(484px,72vw); margin: 0 auto 100px; }
+.section-model-row { position: relative; z-index: 4; display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; margin-bottom: 100px; }
+.section-model-row .section-model { width: 50%; margin: 0 auto; }
 #hero-scene.is-showcase { z-index: 3; }
 
 .contact { padding: 28px 24px 24px; color: var(--ink); background: var(--acid); }
@@ -164,7 +163,7 @@ button { color: inherit; font: inherit; }
 .contact-top p { margin: 0; font: 11px var(--mono); letter-spacing: .07em; line-height: 1.45; }
 .contact-cta { position: relative; z-index: 4; display: grid; grid-template-columns: 1fr minmax(180px,28vw); align-items: center; padding: 55px 0 70px; border-bottom: 1px solid var(--ink); font-size: clamp(75px, 14vw, 230px); font-weight: 600; letter-spacing: -.09em; line-height: .8; }
 .contact-model { position: relative; display: grid; place-items: center; width: 100%; }
-.contact-model .model-viewport { width: min(260px,22vw); }
+.contact-model .section-model { width: min(260px,22vw); }
 .contact-arrow { font-size: .6em; transition: transform .4s ease; }
 .contact-model .contact-arrow { position: absolute; right: 0; top: 50%; font-size: 42px; transform: translateY(-50%); }
 .contact-cta:hover .contact-arrow { transform: translateY(-50%) rotate(45deg); }
@@ -217,13 +216,14 @@ button { color: inherit; font: inherit; }
   .approach-heading { padding: 70px 0 90px; }
   .principles { grid-template-columns: 1fr; }
   .principle { min-height: 280px; }
-  .model-page { padding: 70px 16px 20px; }
-  .model-page .model-viewport { width: min(72vw,52vh); }
+  .section-model-feature { width: min(76vw,420px); margin-bottom: 70px; }
+  .section-model-row { grid-template-columns: 1fr; gap: 28px; margin-bottom: 70px; }
+  .section-model-row .section-model { width: min(60vw,280px); }
   .contact { padding: 22px 16px; }
   .contact-top { display: block; }
   .contact-top p { margin-top: 30px; }
   .contact-cta { grid-template-columns: 1fr 110px; padding: 65px 0; font-size: clamp(58px,17vw,100px); }
-  .contact-model .model-viewport { width: 96px; }
+  .contact-model .section-model { width: 96px; }
   .contact-model .contact-arrow { right: -2px; font-size: 24px; }
   .social-links a { grid-template-columns: 32px 1fr auto; min-height: 76px; }
   .social-handle { display: none; }
