@@ -159,9 +159,19 @@ let sceneEnd = 1;
 let sceneProgress = 0;
 const galleryModels = [];
 const galleryFiles = ['lantern','dragon','logo','flower','hive','fish'];
+const gallerySettings = {
+  lantern:{size:1024,z:100,cell:6,animate:false},dragon:{size:1024,z:34,y:3.2,cell:4,animate:false},
+  flower:{size:512,z:10,cell:4,animate:true},hive:{size:512,z:35,cell:4,animate:true},
+  fish:{size:512,z:11,cell:4,animate:true},logo:{size:512,z:13,cell:6,animate:false}
+};
 let modelSpinDirection = 1;
 let previousScrollY = window.scrollY;
 const vertexShader = `varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position,1.0);}`;
+const modelVertexShader = `varying vec3 vNormal;varying vec3 vPosition;void main(){vec4 mvPosition=modelViewMatrix*vec4(position,1.0);vPosition=mvPosition.xyz;vNormal=normalize(normalMatrix*normal);gl_Position=projectionMatrix*mvPosition;}`;
+const modelFragmentShader = `
+  precision highp float;uniform vec3 uRemapColor;uniform vec3 uLightDir;uniform float uBrightness;uniform float uNormalStrength;varying vec3 vNormal;varying vec3 vPosition;
+  void main(){vec3 normal=normalize(vNormal);float diff=max(dot(normal,normalize(uLightDir)),0.0);vec3 color=diff*uBrightness+normal*uNormalStrength+.5;color=clamp(color,.15,.995)*uRemapColor;gl_FragColor=vec4(color,1.0);}
+`;
 const fragmentShader = `
   precision highp float;
   uniform sampler2D tScene;
@@ -173,31 +183,23 @@ const fragmentShader = `
   uniform vec3 uColor;
   varying vec2 vUv;
   void main(){
-    vec2 cells=floor(uResolution/uCell);
-    vec2 cell=floor(vUv*cells);
-    vec2 sampleUv=(cell+.5)/cells;
-    vec4 sceneSample=texture2D(tScene,sampleUv);
-    if(sceneSample.a<.025){gl_FragColor=vec4(0.0);return;}
-    vec3 normal=normalize(sceneSample.rgb*2.0-1.0);
-    float diffuse=max(dot(normal,normalize(vec3(-.45,.65,.72))),0.0);
-    float rim=pow(1.0-abs(normal.z),2.0);
-    float light=clamp(.58+diffuse*.34+rim*.22,0.0,1.0);
-    vec2 local=fract(vUv*cells);
-    float bit=step(.5,fract(sin(dot(cell,vec2(12.9898,78.233))+floor(uTime*2.4))*43758.5453));
-    vec2 glyphUv=vec2((local.x+bit)*.5,local.y);
-    float glyph=texture2D(tGlyphs,glyphUv).r;
-    gl_FragColor=vec4(uColor,glyph*mix(.82,1.0,light)*uFade);
+    vec2 division=uResolution/uCell;vec2 d=1.0/division;vec2 pixelizedUV=d*(floor(vUv/d)+.5);
+    vec4 pixelizedColor=texture2D(tScene,pixelizedUV);float gray=dot(pixelizedColor.rgb,vec3(.299,.587,.114));
+    float charIndex=floor(gray*15.0);float charX=mod(charIndex,16.0);float charY=floor(charIndex/16.0);
+    vec2 charUV=mod(vUv*(division/16.0),1.0/16.0);charUV-=vec2(0.0,1.0/16.0);charUV+=vec2(charX,-charY)/16.0;
+    float glyph=texture2D(tGlyphs,charUV).r;float alpha=glyph*gray*pixelizedColor.a*uFade;
+    gl_FragColor=vec4(uColor*glyph*gray,alpha);
   }
 `;
 
 function createGlyphTexture(){
   const canvas=document.createElement('canvas');
-  canvas.width=128;canvas.height=64;
+  canvas.width=1024;canvas.height=1024;
   const glyphContext=canvas.getContext('2d');
-  glyphContext.fillStyle='#000';glyphContext.fillRect(0,0,128,64);
-  glyphContext.fillStyle='#fff';glyphContext.font='500 52px "DM Mono",monospace';
+  const characters=' * _<>,  ./O#SF +';
+  glyphContext.clearRect(0,0,1024,1024);glyphContext.fillStyle='#fff';glyphContext.font='72px monospace';
   glyphContext.textAlign='center';glyphContext.textBaseline='middle';
-  glyphContext.fillText('0',32,34);glyphContext.fillText('1',96,34);
+  [...characters].forEach((character,index)=>glyphContext.fillText(character,(index%16)*64+32,Math.floor(index/16)*64+32));
   const texture=new THREE.CanvasTexture(canvas);
   texture.colorSpace=THREE.NoColorSpace;
   texture.minFilter=THREE.LinearFilter;
@@ -217,19 +219,19 @@ function resizeHero(){
   sceneEnd=Math.max(1,aboutSection.offsetTop+aboutSection.offsetHeight);
 }
 
+function createModelMaterial(name){
+  const branch=name==='branch';const logo=name==='logo';
+  return new THREE.ShaderMaterial({transparent:true,side:THREE.DoubleSide,uniforms:{uRemapColor:{value:branch?new THREE.Vector3(.35,.35,.35):logo?new THREE.Vector3(.9,.9,.9):new THREE.Vector3(.69,.9,.9)},uLightDir:{value:branch?new THREE.Vector3(0,.8,1):new THREE.Vector3(0,2,1)},uBrightness:{value:logo?1:branch?.5:.2},uNormalStrength:{value:branch?1.5:.5}},vertexShader:modelVertexShader,fragmentShader:modelFragmentShader});
+}
+
 function prepareModel(gltf,name){
-  const root=new THREE.Group();
-  const bounds=new THREE.Box3().setFromObject(gltf.scene);
-  const center=bounds.getCenter(new THREE.Vector3());
-  const size=bounds.getSize(new THREE.Vector3());
-  gltf.scene.position.sub(center);
-  root.add(gltf.scene);root.scale.setScalar((mobileMotion?2.65:3.2)/Math.max(size.x,size.y,size.z));root.visible=false;
-  root.traverse((child)=>{if(child.isMesh){child.material=new THREE.MeshNormalMaterial({side:THREE.DoubleSide});}});
-  const modelMixer=['flower','hive','fish'].includes(name)?new THREE.AnimationMixer(gltf.scene):null;
-  let duration=1;
-  if(modelMixer)gltf.animations.forEach((clip)=>{modelMixer.clipAction(clip).play();duration=Math.max(duration,clip.duration);});
-  modelScene.add(root);
-  galleryModels.push({name,root,model:gltf.scene,mixer:modelMixer,duration});
+  const settings=gallerySettings[name];const scene=new THREE.Scene();const root=new THREE.Group();root.add(gltf.scene);scene.add(root);
+  const material=createModelMaterial(name);gltf.scene.traverse((child)=>{if(child.isMesh)child.material=material;});
+  const camera=new THREE.PerspectiveCamera(27,1,.1,1000);camera.position.set(0,settings.y||0,settings.z);camera.lookAt(0,0,0);
+  const target=new THREE.WebGLRenderTarget(settings.size,settings.size,{type:THREE.HalfFloatType,depthBuffer:true,stencilBuffer:false});
+  const modelMixer=settings.animate?new THREE.AnimationMixer(gltf.scene):null;
+  if(modelMixer)gltf.animations.forEach((clip)=>{const action=modelMixer.clipAction(clip);action.setLoop(THREE.LoopRepeat,Infinity);action.play();});
+  galleryModels.push({name,scene,root,camera,mixer:modelMixer,target,settings});
 }
 
 function initDragonfly(){
@@ -246,7 +248,10 @@ function initDragonfly(){
   const loader=new GLTFLoader();loader.setDRACOLoader(draco);
   loader.load('assets/models/dragonfly.glb',(gltf)=>{
     dragonfly=new THREE.Group();dragonflyMotion=new THREE.Group();dragonflyMotion.add(gltf.scene);dragonfly.add(dragonflyMotion);
-    dragonfly.traverse((child)=>{if(child.isMesh){child.material=new THREE.MeshNormalMaterial({side:THREE.DoubleSide});}});
+    const dragonflyMaterial=createModelMaterial('dragonfly');
+    dragonfly.traverse((child)=>{if(child.isMesh)child.material=dragonflyMaterial;});
+    const branch=gltf.scene.getObjectByName('Branch002');
+    if(branch)branch.traverse((child)=>{if(child.isMesh)child.material=createModelMaterial('branch');});
     modelScene.add(dragonfly);
     mixer=new THREE.AnimationMixer(gltf.scene);
     if(gltf.animations[0]){const action=mixer.clipAction(gltf.animations[0]);action.play();animationDuration=gltf.animations[0].duration;mixer.setTime(0);}
@@ -266,7 +271,6 @@ function drawScene(time=0,delta=0){
     dragonfly.visible=false;
     if(window.scrollY!==previousScrollY)modelSpinDirection=window.scrollY>previousScrollY?1:-1;
     previousScrollY=window.scrollY;
-    modelCamera.fov=27;modelCamera.position.set(0,0,8);modelCamera.lookAt(0,0,0);
     asciiMaterial.uniforms.uFade.value=1;asciiMaterial.uniforms.uTime.value=time*.001;
     renderer.setRenderTarget(null);renderer.setScissorTest(false);renderer.clear();
     modelViewports.forEach((viewport)=>{
@@ -275,15 +279,14 @@ function drawScene(time=0,delta=0){
       const entry=galleryModels.find((model)=>model.name===viewport.dataset.model);
       if(!entry)return;
       asciiMaterial.uniforms.uColor.value.set(['lantern','logo'].includes(entry.name)?0x000000:0xffffff);
-      galleryModels.forEach((model)=>{model.root.visible=model===entry;});
-      entry.root.rotation.y+=delta*.25*modelSpinDirection;
-      entry.model.rotation.y=THREE.MathUtils.lerp(entry.model.rotation.y,window.scrollY*.005,.3);
+      entry.scene.rotation.y+=delta*.25*modelSpinDirection;
+      entry.root.rotation.y=THREE.MathUtils.lerp(entry.root.rotation.y,window.scrollY*.005,.3);
       if(entry.mixer)entry.mixer.update(delta);
       const ratio=mobileMotion?1:Math.min(window.devicePixelRatio||1,1.5);
       const width=Math.max(1,Math.round(rect.width*ratio));const height=Math.max(1,Math.round(rect.height*ratio));
-      renderTarget.setSize(width,height);modelCamera.aspect=width/height;modelCamera.updateProjectionMatrix();
-      asciiMaterial.uniforms.uResolution.value.set(width,height);asciiMaterial.uniforms.uCell.value=(['dragon','flower','hive','fish'].includes(entry.name)?4:6)*ratio;
-      renderer.setRenderTarget(renderTarget);renderer.clear();renderer.render(modelScene,modelCamera);
+      entry.camera.aspect=1;entry.camera.updateProjectionMatrix();
+      asciiMaterial.uniforms.tScene.value=entry.target.texture;asciiMaterial.uniforms.uResolution.value.set(width,height);asciiMaterial.uniforms.uCell.value=entry.settings.cell*ratio;
+      renderer.setRenderTarget(entry.target);renderer.clear();renderer.render(entry.scene,entry.camera);
       renderer.setRenderTarget(null);renderer.setScissorTest(true);
       const bottom=heroHeight-rect.bottom;
       renderer.setViewport(rect.left,bottom,rect.width,rect.height);renderer.setScissor(rect.left,bottom,rect.width,rect.height);renderer.render(postScene,postCamera);
@@ -291,11 +294,11 @@ function drawScene(time=0,delta=0){
     renderer.setScissorTest(false);
     return;
   }else{
-    galleryModels.forEach((entry)=>{entry.root.visible=false;});
     dragonfly.visible=true;
   const ratio=mobileMotion?1:Math.min(window.devicePixelRatio||1,1.5);
   renderTarget.setSize(Math.max(1,heroWidth*ratio),Math.max(1,heroHeight*ratio));
   asciiMaterial.uniforms.uResolution.value.set(heroWidth*ratio,heroHeight*ratio);
+  asciiMaterial.uniforms.tScene.value=renderTarget.texture;
   asciiMaterial.uniforms.uCell.value=6*ratio;
   asciiMaterial.uniforms.uColor.value.set(0xffffff);
   modelCamera.fov=mobileMotion?16:11;modelCamera.updateProjectionMatrix();
