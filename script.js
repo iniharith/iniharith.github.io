@@ -182,6 +182,7 @@ const fragmentShader = `
   uniform float uFade;
   uniform vec3 uColor;
   uniform float uBlack;
+  uniform float uGlyphFloor;
   varying vec2 vUv;
   void main(){
     vec2 division=uResolution/uCell;vec2 d=1.0/division;vec2 pixelizedUV=d*(floor(vUv/d)+.5);
@@ -190,7 +191,7 @@ const fragmentShader = `
     vec2 local=fract(vUv*division);vec2 charUV=(vec2(charX,0.0)+vec2(local.x,1.0-local.y))/16.0;
     float glyph=texture2D(tGlyphs,charUV).r;
     float alpha=mix(pixelizedColor.a,glyph*max(gray,.38)*pixelizedColor.a,uBlack)*uFade;
-    gl_FragColor=vec4(uColor*glyph*max(gray,.88),alpha);
+    gl_FragColor=vec4(uColor*glyph*max(gray,uGlyphFloor),alpha);
   }
 `;
 
@@ -225,7 +226,7 @@ function resizeHero(){
 
 function createModelMaterial(name){
   const branch=name==='branch';const logo=name==='logo';
-  return new THREE.ShaderMaterial({transparent:true,side:THREE.DoubleSide,uniforms:{uRemapColor:{value:branch?new THREE.Vector3(.35,.35,.35):logo?new THREE.Vector3(.9,.9,.9):new THREE.Vector3(.82,.98,.98)},uLightDir:{value:branch?new THREE.Vector3(0,.8,1):new THREE.Vector3(0,2,1)},uBrightness:{value:logo?1:branch?.5:.42},uNormalStrength:{value:branch?1.5:.62}},vertexShader:modelVertexShader,fragmentShader:modelFragmentShader});
+  return new THREE.ShaderMaterial({transparent:true,side:THREE.DoubleSide,uniforms:{uRemapColor:{value:branch?new THREE.Vector3(.35,.35,.35):logo?new THREE.Vector3(.9,.9,.9):mobileMotion?new THREE.Vector3(.82,.98,.98):new THREE.Vector3(.69,.9,.9)},uLightDir:{value:branch?new THREE.Vector3(0,.8,1):new THREE.Vector3(0,2,1)},uBrightness:{value:logo?1:branch?.5:mobileMotion?.42:.2},uNormalStrength:{value:branch?1.5:mobileMotion?.62:.5}},vertexShader:modelVertexShader,fragmentShader:modelFragmentShader});
 }
 
 function prepareModel(gltf,name){
@@ -252,7 +253,7 @@ function initDragonfly(){
   modelCamera.position.set(0,0,7);
   renderTarget=new THREE.WebGLRenderTarget(1,1,{depthBuffer:true});
   postScene=new THREE.Scene();postCamera=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
-  asciiMaterial=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,uniforms:{tScene:{value:renderTarget.texture},tGlyphs:{value:createGlyphTexture()},uResolution:{value:new THREE.Vector2()},uTime:{value:0},uCell:{value:9},uFade:{value:1},uColor:{value:new THREE.Color(0xffffff)},uBlack:{value:0}},vertexShader,fragmentShader});
+  asciiMaterial=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,uniforms:{tScene:{value:renderTarget.texture},tGlyphs:{value:createGlyphTexture()},uResolution:{value:new THREE.Vector2()},uTime:{value:0},uCell:{value:9},uFade:{value:1},uColor:{value:new THREE.Color(0xffffff)},uBlack:{value:0},uGlyphFloor:{value:mobileMotion?.88:.72}},vertexShader,fragmentShader});
   postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),asciiMaterial));
   const draco=new DRACOLoader();draco.setDecoderPath('assets/draco/');draco.setDecoderConfig({type:'wasm'});
   const loader=new GLTFLoader();loader.setDRACOLoader(draco);
