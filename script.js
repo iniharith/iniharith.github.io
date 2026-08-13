@@ -97,7 +97,13 @@ function updateFluid() {
 }
 
 let scrollTicking = false;
+let lastScrollY = window.scrollY;
+let scrollImpulse = 0;
+let scrollFlow = 0;
 function onScroll() {
+  const nextScrollY = window.scrollY;
+  scrollImpulse = Math.max(-36, Math.min(36, nextScrollY - lastScrollY));
+  lastScrollY = nextScrollY;
   if (scrollTicking) return;
   scrollTicking = true;
   requestAnimationFrame(() => {
@@ -139,19 +145,19 @@ let heroVisible = true;
 let lastSceneDraw = 0;
 
 function buildFireflies() {
-  const count = mobileMotion ? 16 : 34;
-  fireflies = Array.from({ length: count }, (_, index) => ({
+  const count = mobileMotion ? 8 : 15;
+  fireflies = Array.from({ length: count }, () => ({
     x: Math.random() * heroWidth,
     y: Math.random() * heroHeight,
-    size: 1.1 + Math.random() * 2.3,
+    size: 6 + Math.random() * 3.5,
     speed: 0.08 + Math.random() * 0.22,
     driftX: (Math.random() - 0.5) * 0.16,
-    sway: 12 + Math.random() * 36,
+    sway: 15 + Math.random() * 42,
     phase: Math.random() * Math.PI * 2,
     pulse: 0.0008 + Math.random() * 0.0015,
-    alpha: 0.28 + Math.random() * 0.58,
+    alpha: 0.38 + Math.random() * 0.48,
     depth: 0.55 + Math.random() * 0.8,
-    bit: index % 3 === 0 ? (Math.random() < 0.5 ? '0' : '1') : ''
+    flip: Math.random() * 1000
   }));
 }
 
@@ -187,30 +193,34 @@ function drawFog(time) {
 function drawFirefly(firefly, time) {
   const pulse = 0.45 + 0.55 * Math.sin(time * firefly.pulse + firefly.phase);
   const swayX = Math.sin(firefly.phase + time * 0.00022) * firefly.sway;
-  const wing = Math.sin(time * 0.013 + firefly.phase) * 2.4;
+  const wingSpread = 1.25 + Math.abs(Math.sin(time * 0.006 + firefly.phase)) * 1.15;
+  const unit = firefly.size * firefly.depth;
+  const flip = Math.floor((time + firefly.flip) / 260);
+  const glyphs = [
+    { x: -2 * wingSpread, y: -1.1, wing: true },
+    { x: -3 * wingSpread, y: 0, wing: true },
+    { x: -2 * wingSpread, y: 1.1, wing: true },
+    { x: 2 * wingSpread, y: -1.1, wing: true },
+    { x: 3 * wingSpread, y: 0, wing: true },
+    { x: 2 * wingSpread, y: 1.1, wing: true },
+    { x: 0, y: -1.45 },
+    { x: 0, y: -.35, core: true },
+    { x: 0, y: .75, core: true },
+    { x: 0, y: 1.85 }
+  ];
   context.save();
-  context.translate(firefly.x + swayX, firefly.y);
-  context.globalAlpha = firefly.alpha * pulse;
-  if (!mobileMotion) {
-    context.fillStyle = 'rgba(225,255,145,.16)';
-    context.beginPath();
-    context.ellipse(-3.5, wing, 4.8 * firefly.depth, 1.4, -.45, 0, Math.PI * 2);
-    context.ellipse(3.5, -wing, 4.8 * firefly.depth, 1.4, .45, 0, Math.PI * 2);
-    context.fill();
-  }
-  context.shadowColor = 'rgba(199,255,22,.95)';
-  context.shadowBlur = mobileMotion ? 7 : 12 * firefly.depth;
-  context.fillStyle = '#dcff6d';
-  context.beginPath();
-  context.arc(0, 0, firefly.size * firefly.depth, 0, Math.PI * 2);
-  context.fill();
-  if (firefly.bit && pulse > .84) {
-    context.shadowBlur = 0;
-    context.globalAlpha = firefly.alpha * .55;
-    context.fillStyle = '#c7ff16';
-    context.font = `500 ${7 + firefly.depth * 2}px "DM Mono", monospace`;
-    context.fillText(firefly.bit, 7, -6);
-  }
+  context.translate(firefly.x + swayX + scrollFlow * firefly.depth * .45, firefly.y - scrollFlow * firefly.depth * 1.5);
+  context.font = `500 ${unit}px "DM Mono", monospace`;
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  glyphs.forEach((glyph, index) => {
+    const coreLight = glyph.core ? .35 : 0;
+    context.globalAlpha = firefly.alpha * Math.min(1, pulse + coreLight) * (glyph.wing ? .62 : 1);
+    context.fillStyle = glyph.core && pulse > .68 ? '#e8ff99' : '#c7ff16';
+    context.shadowColor = '#c7ff16';
+    context.shadowBlur = mobileMotion ? (glyph.core ? 5 : 2) : (glyph.core ? 12 : 5);
+    context.fillText((index + flip) % 2 ? '1' : '0', glyph.x * unit, glyph.y * unit);
+  });
   context.restore();
 }
 
@@ -224,8 +234,8 @@ function drawScene(time = 0) {
   context.translate((cursorX - 0.5) * 22, (cursorY - 0.5) * 22);
   if (!mobileMotion) drawFog(time);
   fireflies.forEach((firefly) => {
-    firefly.y -= firefly.speed * firefly.depth;
-    firefly.x += firefly.driftX;
+    firefly.y -= firefly.speed * firefly.depth + scrollFlow * .018 * firefly.depth;
+    firefly.x += firefly.driftX + scrollFlow * .004;
     if (firefly.y < -24 || firefly.x < -60 || firefly.x > heroWidth + 60) {
       firefly.y = heroHeight + 24;
       firefly.x = Math.random() * heroWidth;
@@ -252,6 +262,8 @@ function loop(time) {
   if (lenis) lenis.raf(time);
   cursorX += (pointerX - cursorX) * 0.05;
   cursorY += (pointerY - cursorY) * 0.05;
+  scrollFlow += (scrollImpulse - scrollFlow) * 0.12;
+  scrollImpulse *= 0.86;
   if (auroraGlobal) {
     auroraGlobal.style.transform = `translate3d(${(cursorX - 0.5) * -40}px, ${(cursorY - 0.5) * -40}px, 0)`;
   }
