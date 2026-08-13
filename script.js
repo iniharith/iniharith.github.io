@@ -62,6 +62,7 @@ window.addEventListener('pointermove', (event) => {
 const auroraGlobal = document.querySelector('.aurora--global');
 const parallaxElements = document.querySelectorAll('[data-parallax]');
 const fluidElements = document.querySelectorAll('[data-fluid]');
+const mobileMotion = window.matchMedia('(max-width: 800px)').matches;
 
 let pointerX = 0.5;
 let pointerY = 0.5;
@@ -134,9 +135,11 @@ let context = null;
 let glyphs = [];
 let heroWidth = 0;
 let heroHeight = 0;
+let heroVisible = true;
+let lastSceneDraw = 0;
 
 function buildGlyphs() {
-  const count = heroWidth < 700 ? 20 : 44;
+  const count = mobileMotion ? 18 : 42;
   glyphs = Array.from({ length: count }, () => ({
     x: Math.random() * heroWidth,
     y: Math.random() * heroHeight,
@@ -145,13 +148,13 @@ function buildGlyphs() {
     sway: (Math.random() - 0.5) * 26,
     phase: Math.random() * Math.PI * 2,
     alpha: 0.14 + Math.random() * 0.55,
-    char: Math.random() < 0.5 ? '+' : '×',
+    char: Math.random() < 0.5 ? '0' : '1',
     paper: Math.random() < 0.15
   }));
 }
 
 function resizeHero() {
-  const ratio = Math.min(window.devicePixelRatio || 1, 2);
+  const ratio = mobileMotion ? 1 : Math.min(window.devicePixelRatio || 1, 1.5);
   heroWidth = heroCanvas.clientWidth;
   heroHeight = heroCanvas.clientHeight;
   heroCanvas.width = heroWidth * ratio;
@@ -184,29 +187,21 @@ function drawGlyph(glyph) {
   context.save();
   context.translate(glyph.x + swayX, glyph.y);
   context.globalAlpha = glyph.alpha;
-  context.lineWidth = Math.max(1, glyph.size * 0.11);
-  context.strokeStyle = glyph.paper ? 'rgba(241,240,234,0.55)' : 'rgba(199,255,22,0.95)';
+  context.fillStyle = glyph.paper ? 'rgba(241,240,234,0.55)' : 'rgba(199,255,22,0.95)';
   context.shadowColor = 'rgba(199,255,22,0.75)';
-  context.shadowBlur = glyph.size * 0.9;
-  const half = glyph.size;
-  if (glyph.char === '+') {
-    context.beginPath();
-    context.moveTo(-half, 0);
-    context.lineTo(half, 0);
-    context.moveTo(0, -half);
-    context.lineTo(0, half);
-  } else {
-    context.beginPath();
-    context.moveTo(-half, -half);
-    context.lineTo(half, half);
-    context.moveTo(-half, half);
-    context.lineTo(half, -half);
-  }
-  context.stroke();
+  context.shadowBlur = mobileMotion ? 0 : glyph.size * 0.6;
+  context.font = `500 ${Math.max(9, glyph.size)}px "DM Mono", monospace`;
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.fillText(glyph.char, 0, 0);
   context.restore();
 }
 
 function drawScene(time = 0) {
+  if (!heroVisible) return;
+  const interval = mobileMotion ? 1000 / 24 : 1000 / 40;
+  if (!reduceMotion && time - lastSceneDraw < interval) return;
+  lastSceneDraw = time;
   context.clearRect(0, 0, heroWidth, heroHeight);
   context.save();
   context.translate((cursorX - 0.5) * 22, (cursorY - 0.5) * 22);
@@ -224,8 +219,15 @@ function drawScene(time = 0) {
 
 if (heroCanvas && heroCanvas.getContext) {
   context = heroCanvas.getContext('2d');
-  window.addEventListener('resize', resizeHero);
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(resizeHero, 120);
+  }, { passive: true });
   resizeHero();
+  new IntersectionObserver(([entry]) => {
+    heroVisible = entry.isIntersecting;
+  }, { threshold: 0 }).observe(heroCanvas);
 }
 
 function loop(time) {
@@ -235,7 +237,7 @@ function loop(time) {
   if (auroraGlobal) {
     auroraGlobal.style.transform = `translate3d(${(cursorX - 0.5) * -40}px, ${(cursorY - 0.5) * -40}px, 0)`;
   }
-  if (context) drawScene(time);
+  if (context && !document.hidden) drawScene(time);
   requestAnimationFrame(loop);
 }
 
