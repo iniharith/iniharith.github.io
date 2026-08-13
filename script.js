@@ -250,8 +250,10 @@ function prepareModel(gltf,name){
   const bounds=fitToBounds?new THREE.Box3().setFromObject(root):null;
   const cameraTarget=bounds?bounds.getCenter(new THREE.Vector3()):new THREE.Vector3();
   const boundsSize=bounds?bounds.getSize(new THREE.Vector3()):null;
-  const fitDistance=boundsSize?Math.max(boundsSize.x,boundsSize.y)*.5/Math.tan(THREE.MathUtils.degToRad(27)*.5)*1.55:settings.z;
-  camera.position.set(cameraTarget.x,cameraTarget.y+(settings.y||0),cameraTarget.z+fitDistance);camera.lookAt(cameraTarget);
+  if(bounds)root.position.sub(cameraTarget);
+  const padding=name==='flower'?2.15:1.7;
+  const fitDistance=boundsSize?Math.max(boundsSize.x,boundsSize.y)*.5/Math.tan(THREE.MathUtils.degToRad(27)*.5)*padding:settings.z;
+  camera.position.set(0,settings.y||0,fitDistance);camera.lookAt(0,0,0);
   galleryModels.push({name,scene,root,camera,mixer:modelMixer,target:renderTarget,settings});
 }
 
