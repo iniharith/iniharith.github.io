@@ -19,6 +19,7 @@
     <script src="script.js" defer></script>
   </head>
   <body>
+    <div class="aurora aurora--global" aria-hidden="true"><span></span><span></span></div>
     <div class="noise" aria-hidden="true"></div>
     <header class="site-header">
       <a class="brand" href="#home" aria-label="Ini Harith, back to top">
@@ -55,12 +56,12 @@
 
     <main>
       <section class="hero" id="home">
-        <canvas id="signal-canvas" aria-hidden="true"></canvas>
+        <div class="aurora" aria-hidden="true"><span></span><span></span></div>
         <div class="hero-kicker reveal">
           <span class="status-dot"></span>
           <span>OPEN TO COLLABORATION</span>
         </div>
-        <h1 class="hero-title">
+        <h1 class="hero-title" data-parallax="0.08">
           <span class="title-line title-line-first reveal"><span>INI</span></span>
           <span class="title-line title-line-second reveal"><span>HARITH</span></span>
         </h1>
@@ -90,7 +91,7 @@
             <span>Realtime systems</span>
           </div>
         </div>
-        <div class="statement" aria-hidden="true">
+        <div class="statement" data-parallax="0.12" aria-hidden="true">
           <div class="marquee-track">
             <span>IDEA → INTERFACE → SYSTEM → SHIP →</span>
             <span>IDEA → INTERFACE → SYSTEM → SHIP →</span>
@@ -166,18 +167,20 @@
       </section>
 
       <section class="section design-archive" id="design">
+        <div class="aurora" aria-hidden="true"><span></span><span></span></div>
         <div class="section-label reveal">
           <span>03</span>
           <span>DESIGN ARCHIVE</span>
         </div>
-        <div class="design-intro reveal">
+        <div class="design-intro reveal" data-parallax="0.1">
           <h2>From fabric<br>to screen.</h2>
           <div class="design-intro-copy">
             <p>A growing archive of shipped work — shirt designs, a live commerce website, and Android app interfaces.</p>
             <span>SHIPPED WORK / SHOWN RAW</span>
           </div>
+          <span class="design-scroll-hint">SCROLL →</span>
         </div>
-        <div class="mockup-grid">
+        <div class="mockup-grid" data-parallax="0.15">
           <figure class="mockup-card mockup-card-tall reveal">
             <div class="mockup-image">
               <img src="https://raw.githubusercontent.com/iniharith/shop-co/main/backend/public/green-shirt-0.webp" alt="Green short-sleeve shirt back mockup with typographic print" loading="lazy">
@@ -226,11 +229,12 @@
       </section>
 
       <section class="section approach" id="approach">
+        <div class="aurora" aria-hidden="true"><span></span><span></span></div>
         <div class="section-label reveal">
           <span>04</span>
           <span>HOW I WORK</span>
         </div>
-        <div class="approach-heading reveal">
+        <div class="approach-heading reveal" data-parallax="0.1">
           <h2>Curious by default.<br>Precise by practice.</h2>
         </div>
         <div class="principles">

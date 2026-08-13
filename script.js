@@ -57,62 +57,51 @@ window.addEventListener('pointermove', (event) => {
   preview.style.top = `${event.clientY - 20}px`;
 });
 
-const canvas = document.querySelector('#signal-canvas');
-const context = canvas.getContext('2d');
+const auroraGlobal = document.querySelector('.aurora--global');
+const parallaxElements = document.querySelectorAll('[data-parallax]');
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-let width = 0;
-let height = 0;
-let frame = 0;
+
 let pointerX = 0.5;
 let pointerY = 0.5;
+let cursorX = 0.5;
+let cursorY = 0.5;
 
-function resizeCanvas() {
-  const ratio = Math.min(window.devicePixelRatio || 1, 2);
-  width = canvas.clientWidth;
-  height = canvas.clientHeight;
-  canvas.width = width * ratio;
-  canvas.height = height * ratio;
-  context.setTransform(ratio, 0, 0, ratio, 0, 0);
-}
-
-function drawSignal(time = 0) {
-  context.clearRect(0, 0, width, height);
-  const spacing = width < 700 ? 34 : 46;
-  const rows = Math.ceil(height / spacing) + 2;
-  const columns = Math.ceil(width / spacing) + 2;
-
-  context.strokeStyle = 'rgba(199, 255, 22, 0.38)';
-  context.lineWidth = 1;
-  for (let row = -1; row < rows; row += 1) {
-    for (let column = -1; column < columns; column += 1) {
-      const x = column * spacing;
-      const y = row * spacing;
-      const dx = x - pointerX * width;
-      const dy = y - pointerY * height;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      const wave = Math.sin(distance * 0.015 - time * 0.0012) * 8;
-      const angle = Math.atan2(dy, dx) + wave * 0.035;
-      const length = 8 + Math.max(0, 20 - distance * 0.03);
-      context.beginPath();
-      context.moveTo(x - Math.cos(angle) * length, y - Math.sin(angle) * length);
-      context.lineTo(x + Math.cos(angle) * length, y + Math.sin(angle) * length);
-      context.stroke();
-    }
-  }
-
-  frame = requestAnimationFrame(drawSignal);
-}
-
-window.addEventListener('resize', resizeCanvas);
 window.addEventListener('pointermove', (event) => {
   pointerX = event.clientX / window.innerWidth;
   pointerY = event.clientY / window.innerHeight;
 });
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) cancelAnimationFrame(frame);
-  else if (!reduceMotion) drawSignal(performance.now());
-});
 
-resizeCanvas();
-if (reduceMotion) drawSignal(0);
-else drawSignal();
+function animate() {
+  cursorX += (pointerX - cursorX) * 0.05;
+  cursorY += (pointerY - cursorY) * 0.05;
+  if (auroraGlobal) {
+    auroraGlobal.style.transform = `translate3d(${(cursorX - 0.5) * -40}px, ${(cursorY - 0.5) * -40}px, 0)`;
+  }
+  if (!reduceMotion) requestAnimationFrame(animate);
+}
+
+function updateParallax() {
+  const viewportMiddle = window.innerHeight / 2;
+  parallaxElements.forEach((element) => {
+    const rect = element.getBoundingClientRect();
+    if (rect.bottom < -200 || rect.top > window.innerHeight + 200) return;
+    const speed = parseFloat(element.dataset.parallax) || 0.15;
+    const offset = (rect.top + rect.height / 2 - viewportMiddle) * speed;
+    element.style.transform = `translate3d(0, ${offset}px, 0)`;
+  });
+}
+
+let scrollTicking = false;
+window.addEventListener('scroll', () => {
+  if (scrollTicking) return;
+  scrollTicking = true;
+  requestAnimationFrame(() => {
+    if (!reduceMotion) updateParallax();
+    scrollTicking = false;
+  });
+}, { passive: true });
+
+if (!reduceMotion) {
+  animate();
+  updateParallax();
+}
