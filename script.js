@@ -166,6 +166,7 @@ const gallerySettings = {
 };
 let modelSpinDirection = 1;
 let previousScrollY = window.scrollY;
+let activeModel = '';
 const vertexShader = `varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position,1.0);}`;
 const modelVertexShader = `varying vec3 vNormal;varying vec3 vPosition;void main(){vec4 mvPosition=modelViewMatrix*vec4(position,1.0);vPosition=mvPosition.xyz;vNormal=normalize(normalMatrix*normal);gl_Position=projectionMatrix*mvPosition;}`;
 const modelFragmentShader = `
@@ -183,10 +184,11 @@ const fragmentShader = `
   uniform vec3 uColor;
   uniform float uBlack;
   uniform float uGlyphFloor;
+  uniform float uLuminanceBoost;
   varying vec2 vUv;
   void main(){
     vec2 division=uResolution/uCell;vec2 d=1.0/division;vec2 pixelizedUV=d*(floor(vUv/d)+.5);
-    vec4 pixelizedColor=texture2D(tScene,pixelizedUV);float gray=dot(pixelizedColor.rgb,vec3(.299,.587,.114));
+    vec4 pixelizedColor=texture2D(tScene,pixelizedUV);float gray=clamp(dot(pixelizedColor.rgb,vec3(.299,.587,.114))*uLuminanceBoost,0.0,1.0);
     float charIndex=floor(gray*15.0);float charX=mod(charIndex,16.0);
     vec2 local=fract(vUv*division);vec2 charUV=(vec2(charX,0.0)+vec2(local.x,1.0-local.y))/16.0;
     float glyph=texture2D(tGlyphs,charUV).r;
@@ -253,7 +255,7 @@ function initDragonfly(){
   modelCamera.position.set(0,0,7);
   renderTarget=new THREE.WebGLRenderTarget(1,1,{depthBuffer:true});
   postScene=new THREE.Scene();postCamera=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
-  asciiMaterial=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,uniforms:{tScene:{value:renderTarget.texture},tGlyphs:{value:createGlyphTexture()},uResolution:{value:new THREE.Vector2()},uTime:{value:0},uCell:{value:9},uFade:{value:1},uColor:{value:new THREE.Color(0xffffff)},uBlack:{value:0},uGlyphFloor:{value:mobileMotion?.88:.72}},vertexShader,fragmentShader});
+  asciiMaterial=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,uniforms:{tScene:{value:renderTarget.texture},tGlyphs:{value:createGlyphTexture()},uResolution:{value:new THREE.Vector2()},uTime:{value:0},uCell:{value:9},uFade:{value:1},uColor:{value:new THREE.Color(0xffffff)},uBlack:{value:0},uGlyphFloor:{value:mobileMotion?.88:.72},uLuminanceBoost:{value:mobileMotion?1.5:1}},vertexShader,fragmentShader});
   postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),asciiMaterial));
   const draco=new DRACOLoader();draco.setDecoderPath('assets/draco/');draco.setDecoderConfig({type:'wasm'});
   const loader=new GLTFLoader();loader.setDRACOLoader(draco);
@@ -271,6 +273,12 @@ function initDragonfly(){
   },undefined,(error)=>console.error('Dragonfly model failed to load:',error));
   galleryFiles.forEach((name)=>loader.load(`assets/models/${name}.glb`,(gltf)=>prepareModel(gltf,name),undefined,(error)=>console.error(`${name} model failed to load:`,error)));
   resizeHero();
+  modelViewports.forEach((viewport)=>{
+    viewport.addEventListener('pointerenter',()=>{activeModel=viewport.dataset.model;});
+    viewport.addEventListener('pointerleave',()=>{if(activeModel===viewport.dataset.model)activeModel='';});
+    viewport.addEventListener('pointerdown',()=>{activeModel=viewport.dataset.model;});
+    viewport.addEventListener('pointerup',()=>{if(activeModel===viewport.dataset.model)activeModel='';});
+  });
   let resizeTimer;window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(resizeHero,120);},{passive:true});
 }
 
@@ -290,7 +298,7 @@ function drawScene(time=0,delta=0){
       const entry=galleryModels.find((model)=>model.name===viewport.dataset.model);
       if(!entry)return;
       const black=['lantern','logo'].includes(entry.name);
-      asciiMaterial.uniforms.uColor.value.set(black?0x000000:0xffffff);asciiMaterial.uniforms.uBlack.value=black?1:0;
+      asciiMaterial.uniforms.uColor.value.set(activeModel===entry.name?0xfa4c14:black?0x000000:0xffffff);asciiMaterial.uniforms.uBlack.value=black&&activeModel!==entry.name?1:0;
       entry.scene.rotation.y+=delta*.25*modelSpinDirection;
       entry.root.rotation.y=THREE.MathUtils.lerp(entry.root.rotation.y,window.scrollY*.005,.3);
       if(entry.mixer)entry.mixer.update(delta);
@@ -314,6 +322,7 @@ function drawScene(time=0,delta=0){
   asciiMaterial.uniforms.uCell.value=6*ratio;
   asciiMaterial.uniforms.uColor.value.set(0xffffff);
   asciiMaterial.uniforms.uBlack.value=0;
+  asciiMaterial.uniforms.uLuminanceBoost.value=mobileMotion?1.5:1;
   modelCamera.fov=mobileMotion?16:11;modelCamera.updateProjectionMatrix();
   const targetProgress=Math.min(1,Math.max(0,window.scrollY/Math.max(1,sceneEnd-window.innerHeight*.35)));
   sceneProgress+=(targetProgress-sceneProgress)*(mobileMotion?.14:.1);
