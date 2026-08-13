@@ -67,15 +67,19 @@ const auroraGlobal = document.querySelector('.aurora--global');
 const parallaxElements = document.querySelectorAll('[data-parallax]');
 const fluidElements = document.querySelectorAll('[data-fluid]');
 const mobileMotion = window.matchMedia('(max-width: 800px)').matches;
+const heroSection = document.querySelector('#home');
 
 let pointerX = 0.5;
 let pointerY = 0.5;
 let cursorX = 0.5;
 let cursorY = 0.5;
+let heroActive = false;
 
 window.addEventListener('pointermove', (event) => {
   pointerX = event.clientX / window.innerWidth;
   pointerY = event.clientY / window.innerHeight;
+  const heroRect=heroSection.getBoundingClientRect();
+  heroActive=event.clientY>=heroRect.top&&event.clientY<=heroRect.bottom;
 });
 
 function updateParallax() {
@@ -283,6 +287,10 @@ function initDragonfly(){
     viewport.addEventListener('pointerdown',()=>{activeModel=viewport.dataset.model;});
     viewport.addEventListener('pointerup',()=>{if(activeModel===viewport.dataset.model)activeModel='';});
   });
+  heroSection.addEventListener('pointerenter',()=>{heroActive=true;});
+  heroSection.addEventListener('pointerleave',()=>{heroActive=false;});
+  heroSection.addEventListener('pointerdown',()=>{heroActive=true;});
+  heroSection.addEventListener('pointerup',()=>{heroActive=false;});
   let resizeTimer;window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(resizeHero,120);},{passive:true});
 }
 
@@ -302,7 +310,7 @@ function drawScene(time=0,delta=0){
       const entry=galleryModels.find((model)=>model.name===viewport.dataset.model);
       if(!entry)return;
       const black=['lantern','logo'].includes(entry.name);
-      asciiMaterial.uniforms.uColor.value.set(activeModel===entry.name?0xfa4c14:black?0x000000:0xffffff);asciiMaterial.uniforms.uBlack.value=black&&activeModel!==entry.name?1:0;
+      asciiMaterial.uniforms.uColor.value.set(activeModel===entry.name?0xc7ff16:black?0x000000:0xffffff);asciiMaterial.uniforms.uBlack.value=black&&activeModel!==entry.name?1:0;
       entry.scene.rotation.y+=delta*.25*modelSpinDirection;
       entry.root.rotation.y=THREE.MathUtils.lerp(entry.root.rotation.y,window.scrollY*.005,.3);
       if(entry.mixer)entry.mixer.update(delta);
@@ -324,7 +332,7 @@ function drawScene(time=0,delta=0){
   asciiMaterial.uniforms.uResolution.value.set(heroWidth*ratio,heroHeight*ratio);
   asciiMaterial.uniforms.tScene.value=renderTarget.texture;
   asciiMaterial.uniforms.uCell.value=6*ratio;
-  asciiMaterial.uniforms.uColor.value.set(0xffffff);
+  asciiMaterial.uniforms.uColor.value.set(heroActive?0xc7ff16:0xffffff);
   asciiMaterial.uniforms.uBlack.value=0;
   asciiMaterial.uniforms.uLuminanceBoost.value=mobileMotion?1.5:1;
   modelCamera.fov=mobileMotion?16:11;modelCamera.updateProjectionMatrix();
@@ -338,6 +346,8 @@ function drawScene(time=0,delta=0){
     // The portfolio title occupies more of the frame than the reference page,
     // so move slightly toward the authored target while retaining its camera path.
     modelCamera.position.lerp(cameraLookAt.position,mobileMotion?.12:.16);
+    modelCamera.position.x+=(cursorX-.5)*(mobileMotion?.08:.16);
+    modelCamera.position.y-=(cursorY-.5)*(mobileMotion?.06:.12);
     modelCamera.lookAt(cameraLookAt.position);
   }
   dragonfly.position.y=!mobileMotion&&ease>.5?(ease-.5)*9:0;

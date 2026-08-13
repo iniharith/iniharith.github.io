@@ -160,9 +160,9 @@ button { color: inherit; font: inherit; }
 .section-label-dark { min-width: 45vw; border-color: rgba(10,10,10,.3); }
 .contact-top { display: flex; justify-content: space-between; align-items: start; }
 .contact-top p { margin: 0; font: 11px var(--mono); letter-spacing: .07em; line-height: 1.45; }
-.contact-cta { position: relative; z-index: 4; display: grid; grid-template-columns: 1fr minmax(180px,28vw); align-items: center; padding: 55px 0 70px; border-bottom: 1px solid var(--ink); font-size: clamp(75px, 14vw, 230px); font-weight: 600; letter-spacing: -.09em; line-height: .8; }
-.contact-model { position: relative; display: grid; place-items: center; width: 100%; }
-.contact-model .section-model { width: min(260px,22vw); }
+.contact-cta { position: relative; z-index: 4; display: flex; justify-content: space-between; align-items: center; padding: 80px 0 95px; border-bottom: 1px solid var(--ink); font-size: clamp(75px,16vw,260px); font-weight: 600; letter-spacing: -.09em; line-height: .8; }
+.contact-model { position: absolute; right: 0; top: 50%; display: grid; place-items: center; width: min(260px,22vw); transform: translateY(-50%); }
+.contact-model .section-model { width: 100%; }
 .contact-arrow { font-size: .6em; transition: transform .4s ease; }
 .contact-model .contact-arrow { position: absolute; right: 0; top: 50%; font-size: 42px; transform: translateY(-50%); }
 .contact-cta:hover .contact-arrow { transform: translateY(-50%) rotate(45deg); }
@@ -220,8 +220,8 @@ button { color: inherit; font: inherit; }
   .contact { padding: 22px 16px; }
   .contact-top { display: block; }
   .contact-top p { margin-top: 30px; }
-  .contact-cta { grid-template-columns: 1fr 110px; padding: 65px 0; font-size: clamp(58px,17vw,100px); }
-  .contact-model .section-model { width: 96px; }
+  .contact-cta { padding: 80px 0; font-size: clamp(65px,21vw,120px); }
+  .contact-model { width: 96px; }
   .contact-model .contact-arrow { right: -2px; font-size: 24px; }
   .social-links a { grid-template-columns: 32px 1fr auto; min-height: 76px; }
   .social-handle { display: none; }
