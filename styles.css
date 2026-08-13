@@ -57,7 +57,7 @@ button { color: inherit; font: inherit; }
 .section-label { display: grid; grid-template-columns: 50% 50%; padding-bottom: 18px; border-bottom: 1px solid var(--line); font: 11px var(--mono); letter-spacing: .08em; }
 .about-copy { display: grid; grid-template-columns: 1fr 3fr; gap: 24px; padding: 90px 0 75px; }
 .eyebrow { margin: 8px 0 0; font: 11px var(--mono); letter-spacing: .08em; }
-.about-copy h2, .work-intro h2, .approach-heading h2 { margin: 0; font-size: clamp(50px, 7.5vw, 124px); font-weight: 500; letter-spacing: -.07em; line-height: .9; }
+.about-copy h2, .work-intro h2, .design-intro h2, .approach-heading h2 { margin: 0; font-size: clamp(50px, 7.5vw, 124px); font-weight: 500; letter-spacing: -.07em; line-height: .9; }
 .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10vw; margin-left: 25%; padding: 0 0 120px; }
 .about-grid p { max-width: 620px; margin: 0; font-size: clamp(19px, 2vw, 32px); line-height: 1.35; letter-spacing: -.035em; }
 .capabilities { display: flex; flex-direction: column; border-top: 1px solid var(--line); font: 12px var(--mono); text-transform: uppercase; }
@@ -91,6 +91,27 @@ button { color: inherit; font: inherit; }
 .preview-content[data-type="lyrics"]::before { width: 75%; height: 80%; border: 0; border-radius: 0; background: repeating-linear-gradient(0deg, transparent 0 18px, rgba(199,255,22,.28) 19px 20px); box-shadow: none; }
 .preview-content[data-type="print"]::before { width: 150%; height: 70px; border: 0; border-radius: 0; background: repeating-linear-gradient(90deg, var(--acid) 0 12px, transparent 12px 24px); transform: rotate(-25deg); box-shadow: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+.design-archive { padding-bottom: 160px; color: var(--paper); background: #171717; }
+.design-archive .section-label { border-color: rgba(241,240,234,.25); }
+.design-intro { display: grid; grid-template-columns: 3fr 1fr; gap: 10vw; align-items: end; padding: 95px 0 120px; }
+.design-intro-copy p { margin: 0 0 28px; font-size: 18px; line-height: 1.45; }
+.design-intro-copy span, .mockup-index, .mockup-card figcaption, .design-note > span { font: 11px var(--mono); letter-spacing: .07em; }
+.mockup-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; align-items: start; }
+.mockup-card { margin: 0; }
+.mockup-card-tall { grid-column: 1 / span 5; }
+.mockup-card-offset { grid-column: 8 / span 5; margin-top: 16vw; }
+.mockup-card-wide { grid-column: 3 / span 7; margin-top: -5vw; }
+.mockup-image { position: relative; overflow: hidden; aspect-ratio: 4 / 5; background: #262626; }
+.mockup-card-wide .mockup-image { aspect-ratio: 7 / 5; }
+.mockup-image::after { content: ""; position: absolute; inset: 0; border: 1px solid rgba(241,240,234,.18); pointer-events: none; }
+.mockup-image img { width: 100%; height: 100%; display: block; object-fit: cover; filter: saturate(.78) contrast(1.05); transition: transform .8s cubic-bezier(.2,.8,.2,1), filter .5s ease; }
+.mockup-card:hover img { transform: scale(1.025); filter: saturate(1) contrast(1); }
+.mockup-index { position: absolute; z-index: 1; top: 14px; left: 14px; display: grid; place-items: center; width: 34px; height: 34px; color: var(--ink); border-radius: 50%; background: var(--acid); }
+.mockup-card figcaption { display: flex; justify-content: space-between; gap: 20px; padding-top: 13px; color: rgba(241,240,234,.6); }
+.mockup-card figcaption span:first-child { color: var(--paper); }
+.design-note { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; margin-top: 130px; padding-top: 18px; border-top: 1px solid rgba(241,240,234,.25); }
+.design-note p { max-width: 480px; margin: 0; font-size: clamp(20px, 2vw, 31px); line-height: 1.3; letter-spacing: -.03em; }
 
 .approach { color: var(--paper); background: var(--ink); }
 .approach .section-label { border-color: rgba(241,240,234,.25); }
@@ -140,6 +161,13 @@ button { color: inherit; font: inherit; }
   .project-stack, .project-year { display: none; }
   .project-name span { display: block; margin-top: 9px; }
   .project-preview { display: none; }
+  .design-archive { padding-bottom: 90px; }
+  .design-intro { grid-template-columns: 1fr; gap: 45px; padding: 65px 0 75px; }
+  .mockup-grid { grid-template-columns: 1fr; gap: 65px; }
+  .mockup-card-tall, .mockup-card-offset, .mockup-card-wide { grid-column: auto; margin-top: 0; }
+  .mockup-card-wide .mockup-image { aspect-ratio: 4 / 5; }
+  .mockup-card figcaption { flex-direction: column; gap: 5px; }
+  .design-note { grid-template-columns: 1fr; gap: 28px; margin-top: 90px; }
   .approach-heading { padding: 70px 0 90px; }
   .principles { grid-template-columns: 1fr; }
   .principle { min-height: 280px; }
