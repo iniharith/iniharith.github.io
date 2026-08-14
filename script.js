@@ -239,7 +239,7 @@ function createModelMaterial(name){
 }
 
 function prepareModel(gltf,name){
-  const settings=gallerySettings[name];const scene=new THREE.Scene();const root=new THREE.Group();root.add(gltf.scene);scene.add(root);
+  const settings=gallerySettings[name];const scene=new THREE.Scene();const root=new THREE.Group();const content=new THREE.Group();content.add(gltf.scene);root.add(content);scene.add(root);
   const material=createModelMaterial(name);gltf.scene.traverse((child)=>{if(child.isMesh)child.material=material;});
   const camera=new THREE.PerspectiveCamera(27,1,.1,1000);
   const renderTarget=new THREE.WebGLRenderTarget(settings.size,settings.size,{depthBuffer:true,stencilBuffer:false});
@@ -248,8 +248,16 @@ function prepareModel(gltf,name){
     gltf.animations.forEach((clip)=>{const action=modelMixer.clipAction(clip);action.setLoop(THREE.LoopRepeat,Infinity);action.play();});
     modelMixer.setTime(0);
   }
-  camera.position.set(0,settings.y||0,settings.z);camera.lookAt(0,0,0);
-  galleryModels.push({name,scene,root,camera,mixer:modelMixer,target:renderTarget,settings});
+  scene.updateMatrixWorld(true);
+  const fitToBounds=['flower','fish'].includes(name);
+  const bounds=fitToBounds?new THREE.Box3().setFromObject(content):null;
+  const center=bounds?bounds.getCenter(new THREE.Vector3()):new THREE.Vector3();
+  const size=bounds?bounds.getSize(new THREE.Vector3()):null;
+  if(bounds){content.position.sub(center);scene.updateMatrixWorld(true);}
+  const padding=name==='flower'?1.9:name==='fish'?1.65:1;
+  const distance=size?Math.max(size.x,size.y)*.5/Math.tan(THREE.MathUtils.degToRad(27)*.5)*padding:settings.z;
+  camera.position.set(0,settings.y||0,distance);camera.lookAt(0,0,0);
+  galleryModels.push({name,scene,root,content,camera,mixer:modelMixer,target:renderTarget,settings});
 }
 
 function initDragonfly(){
