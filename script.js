@@ -172,7 +172,23 @@ let modelSpinDirection = 1;
 let previousScrollY = window.scrollY;
 let activeModel = '';
 const vertexShader = `varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position,1.0);}`;
-const modelVertexShader = `varying vec3 vNormal;varying vec3 vPosition;void main(){vec4 mvPosition=modelViewMatrix*vec4(position,1.0);vPosition=mvPosition.xyz;vNormal=normalize(normalMatrix*normal);gl_Position=projectionMatrix*mvPosition;}`;
+const modelVertexShader = `
+  #include <common>
+  #include <morphtarget_pars_vertex>
+  #include <skinning_pars_vertex>
+  varying vec3 vNormal;varying vec3 vPosition;
+  void main(){
+    #include <beginnormal_vertex>
+    #include <morphnormal_vertex>
+    #include <skinbase_vertex>
+    #include <skinnormal_vertex>
+    vNormal=normalize(normalMatrix*objectNormal);
+    #include <begin_vertex>
+    #include <morphtarget_vertex>
+    #include <skinning_vertex>
+    vec4 mvPosition=modelViewMatrix*vec4(transformed,1.0);vPosition=mvPosition.xyz;gl_Position=projectionMatrix*mvPosition;
+  }
+`;
 const modelFragmentShader = `
   precision highp float;uniform vec3 uRemapColor;uniform vec3 uLightDir;uniform float uBrightness;uniform float uNormalStrength;varying vec3 vNormal;varying vec3 vPosition;
   void main(){vec3 normal=normalize(vNormal);float diff=max(dot(normal,normalize(uLightDir)),0.0);vec3 color=diff*uBrightness+normal*uNormalStrength+.5;color=clamp(color,.15,.995)*uRemapColor;gl_FragColor=vec4(color,1.0);}
@@ -234,13 +250,13 @@ function createModelMaterial(name){
   const branch=name==='branch';const logo=name==='logo';const bright=['flower','fish','hive','dragon'].includes(name);
   const remap=branch?new THREE.Vector3(.35,.35,.35):logo?new THREE.Vector3(.9,.9,.9):mobileMotion?new THREE.Vector3(.82,.98,.98):new THREE.Vector3(.69,.9,.9);
   const brightness=logo?1:branch?.5:bright?.5:mobileMotion?.42:.2;
-  const normalStrength=branch?1.5:bright?.7:mobileMotion?.62:.5;
+  const normalStrength=branch?1.5:bright?.9:mobileMotion?.62:.5;
   return new THREE.ShaderMaterial({transparent:true,side:THREE.DoubleSide,uniforms:{uRemapColor:{value:remap},uLightDir:{value:branch?new THREE.Vector3(0,.8,1):new THREE.Vector3(0,2,1)},uBrightness:{value:brightness},uNormalStrength:{value:normalStrength}},vertexShader:modelVertexShader,fragmentShader:modelFragmentShader});
 }
 
 function prepareModel(gltf,name){
   const settings=gallerySettings[name];const scene=new THREE.Scene();const root=new THREE.Group();root.add(gltf.scene);scene.add(root);
-  const material=createModelMaterial(name);gltf.scene.traverse((child)=>{if(child.isMesh)child.material=child.isSkinnedMesh?new THREE.MeshBasicMaterial({side:THREE.DoubleSide}):material;});
+  const material=createModelMaterial(name);gltf.scene.traverse((child)=>{if(child.isMesh)child.material=material;});
   const camera=new THREE.PerspectiveCamera(27,1,.1,1000);
   const renderTarget=new THREE.WebGLRenderTarget(settings.size,settings.size,{depthBuffer:true,stencilBuffer:false});
   const modelMixer=settings.animate?new THREE.AnimationMixer(gltf.scene):null;
