@@ -164,9 +164,9 @@ let sceneProgress = 0;
 const galleryModels = [];
 const galleryFiles = ['lantern','dragon','logo','flower','hive','fish'];
 const gallerySettings = {
-  lantern:{size:1024,z:100,cell:6,animate:false},dragon:{size:1024,z:42,y:0,cell:4,animate:false},
-  flower:{size:512,z:10,cell:4,animate:true},hive:{size:512,z:35,cell:4,animate:true},
-  fish:{size:512,z:11,cell:4,animate:true},logo:{size:512,z:13,cell:6,animate:false}
+  lantern:{size:1024,z:100,cell:6,animate:false},dragon:{size:1024,z:42,y:0,cell:6,animate:false},
+  flower:{size:512,z:10,cell:6,animate:true},hive:{size:512,z:35,cell:6,animate:true},
+  fish:{size:512,z:11,cell:6,animate:true},logo:{size:512,z:13,cell:6,animate:false}
 };
 let modelSpinDirection = 1;
 let previousScrollY = window.scrollY;
@@ -231,10 +231,10 @@ function resizeHero(){
 }
 
 function createModelMaterial(name){
-  const branch=name==='branch';const logo=name==='logo';
+  const branch=name==='branch';const logo=name==='logo';const bright=['flower','fish','hive','dragon'].includes(name);
   const remap=branch?new THREE.Vector3(.35,.35,.35):logo?new THREE.Vector3(.9,.9,.9):mobileMotion?new THREE.Vector3(.82,.98,.98):new THREE.Vector3(.69,.9,.9);
-  const brightness=logo?1:branch?.5:mobileMotion?.42:.2;
-  const normalStrength=branch?1.5:mobileMotion?.62:.5;
+  const brightness=logo?1:branch?.5:bright?.5:mobileMotion?.42:.2;
+  const normalStrength=branch?1.5:bright?.7:mobileMotion?.62:.5;
   return new THREE.ShaderMaterial({transparent:true,side:THREE.DoubleSide,uniforms:{uRemapColor:{value:remap},uLightDir:{value:branch?new THREE.Vector3(0,.8,1):new THREE.Vector3(0,2,1)},uBrightness:{value:brightness},uNormalStrength:{value:normalStrength}},vertexShader:modelVertexShader,fragmentShader:modelFragmentShader});
 }
 
@@ -306,8 +306,10 @@ function drawScene(time=0,delta=0){
       if(rect.bottom<=0||rect.top>=heroHeight)return;
       const entry=galleryModels.find((model)=>model.name===viewport.dataset.model);
       if(!entry)return;
-      const black=['lantern','logo'].includes(entry.name);
+      const black=['lantern','logo'].includes(entry.name);const bright=['flower','fish','hive','dragon'].includes(entry.name);
       asciiMaterial.uniforms.uColor.value.set(activeModel===entry.name?0xc7ff16:black?0x000000:0xffffff);asciiMaterial.uniforms.uBlack.value=black&&activeModel!==entry.name?1:0;
+      asciiMaterial.uniforms.uLuminanceBoost.value=bright?1.6:mobileMotion?1.5:1;
+      asciiMaterial.uniforms.uGlyphFloor.value=bright?.85:mobileMotion?.88:.72;
       if(entry.settings.spin!==false)entry.scene.rotation.y+=delta*.25*modelSpinDirection;
       entry.root.rotation.y=THREE.MathUtils.lerp(entry.root.rotation.y,window.scrollY*.005,.3);
       if(entry.mixer)entry.mixer.update(delta);
