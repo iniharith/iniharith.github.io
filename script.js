@@ -165,8 +165,8 @@ const galleryModels = [];
 const galleryFiles = ['lantern','dragon','logo','flower','hive','fish'];
 const gallerySettings = {
   lantern:{size:1024,z:100,cell:6,animate:false},dragon:{size:1024,z:42,y:0,cell:4,animate:false},
-  flower:{size:512,z:22,cell:4,animate:true},hive:{size:512,z:35,cell:4,animate:true},
-  fish:{size:512,z:11,cell:4,animate:true,spin:false},logo:{size:512,z:13,cell:6,animate:false}
+  flower:{size:512,z:35,cell:4,animate:true},hive:{size:512,z:35,cell:4,animate:true},
+  fish:{size:512,z:35,cell:4,animate:true},logo:{size:512,z:13,cell:6,animate:false}
 };
 let modelSpinDirection = 1;
 let previousScrollY = window.scrollY;
@@ -231,47 +231,11 @@ function resizeHero(){
 }
 
 function createModelMaterial(name){
-  const branch=name==='branch';const logo=name==='logo';const fish=name==='fish';
-  const remap=fish?new THREE.Vector3(.85,.95,.95):branch?new THREE.Vector3(.35,.35,.35):logo?new THREE.Vector3(.9,.9,.9):mobileMotion?new THREE.Vector3(.82,.98,.98):new THREE.Vector3(.69,.9,.9);
-  const brightness=logo?1:fish?.65:branch?.5:mobileMotion?.42:.2;
-  const normalStrength=branch?1.5:fish?.9:mobileMotion?.62:.5;
+  const branch=name==='branch';const logo=name==='logo';
+  const remap=branch?new THREE.Vector3(.35,.35,.35):logo?new THREE.Vector3(.9,.9,.9):mobileMotion?new THREE.Vector3(.82,.98,.98):new THREE.Vector3(.69,.9,.9);
+  const brightness=logo?1:branch?.5:mobileMotion?.42:.2;
+  const normalStrength=branch?1.5:mobileMotion?.62:.5;
   return new THREE.ShaderMaterial({transparent:true,side:THREE.DoubleSide,uniforms:{uRemapColor:{value:remap},uLightDir:{value:branch?new THREE.Vector3(0,.8,1):new THREE.Vector3(0,2,1)},uBrightness:{value:brightness},uNormalStrength:{value:normalStrength}},vertexShader:modelVertexShader,fragmentShader:modelFragmentShader});
-}
-
-const _analysisVector=new THREE.Vector3();
-function getRenderedAnalysis(root){
-  root.updateMatrixWorld(true);
-  const points=[];
-  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity,minZ=Infinity,maxZ=-Infinity;
-  root.traverse((obj)=>{
-    if(!obj.isMesh)return;
-    const position=obj.geometry&&obj.geometry.attributes&&obj.geometry.attributes.position;
-    if(!position)return;
-    const skinned=obj.isSkinnedMesh&&obj.geometry.attributes.skinIndex&&obj.geometry.attributes.skinWeight;
-    for(let i=0;i<position.count;i++){
-      _analysisVector.set(position.getX(i),position.getY(i),position.getZ(i));
-      if(skinned)obj.applyBoneTransform(i,_analysisVector);
-      _analysisVector.applyMatrix4(obj.matrixWorld);
-      if(_analysisVector.x<minX)minX=_analysisVector.x;if(_analysisVector.x>maxX)maxX=_analysisVector.x;
-      if(_analysisVector.y<minY)minY=_analysisVector.y;if(_analysisVector.y>maxY)maxY=_analysisVector.y;
-      if(_analysisVector.z<minZ)minZ=_analysisVector.z;if(_analysisVector.z>maxZ)maxZ=_analysisVector.z;
-      points.push(_analysisVector.x,_analysisVector.y,_analysisVector.z);
-    }
-  });
-  if(minX===Infinity)return null;
-  const center=new THREE.Vector3((minX+maxX)/2,(minY+maxY)/2,(minZ+maxZ)/2);
-  let c11=0,c12=0,c13=0,c22=0,c23=0,c33=0;
-  for(let i=0;i<points.length;i+=3){
-    const dx=points[i]-center.x,dy=points[i+1]-center.y,dz=points[i+2]-center.z;
-    c11+=dx*dx;c12+=dx*dy;c13+=dx*dz;c22+=dy*dy;c23+=dy*dz;c33+=dz*dz;
-  }
-  let vx=1,vy=0,vz=0;
-  for(let iter=0;iter<12;iter++){
-    const ax=c11*vx+c12*vy+c13*vz,ay=c12*vx+c22*vy+c23*vz,az=c13*vx+c23*vy+c33*vz;
-    const n=Math.sqrt(ax*ax+ay*ay+az*az)||1;
-    vx=ax/n;vy=ay/n;vz=az/n;
-  }
-  return {center,size:new THREE.Vector3(maxX-minX,maxY-minY,maxZ-minZ),longAxis:new THREE.Vector3(vx,vy,vz)};
 }
 
 function prepareModel(gltf,name){
@@ -284,22 +248,7 @@ function prepareModel(gltf,name){
     gltf.animations.forEach((clip)=>{const action=modelMixer.clipAction(clip);action.setLoop(THREE.LoopRepeat,Infinity);action.play();});
     modelMixer.setTime(0);
   }
-  scene.updateMatrixWorld(true);
-  const fitToBounds=['flower','fish'].includes(name);
-  let analysis=fitToBounds?getRenderedAnalysis(root):null;
-  if(analysis&&name==='fish'){
-    gltf.scene.quaternion.copy(new THREE.Quaternion().setFromUnitVectors(analysis.longAxis,new THREE.Vector3(1,0,0)));
-    scene.updateMatrixWorld(true);
-    analysis=getRenderedAnalysis(root);
-  }
-  if(analysis){
-    root.position.sub(analysis.center);
-    const padding=name==='flower'?2.8:1.1;
-    const fitDistance=Math.max(analysis.size.x,analysis.size.y)*.5/Math.tan(THREE.MathUtils.degToRad(27)*.5)*padding;
-    camera.position.set(0,settings.y||0,fitDistance);camera.lookAt(0,0,0);
-  }else{
-    camera.position.set(0,settings.y||0,settings.z);camera.lookAt(0,0,0);
-  }
+  camera.position.set(0,settings.y||0,settings.z);camera.lookAt(0,0,0);
   galleryModels.push({name,scene,root,camera,mixer:modelMixer,target:renderTarget,settings});
 }
 
