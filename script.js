@@ -165,8 +165,8 @@ const galleryModels = [];
 const galleryFiles = ['lantern','dragon','logo','flower','hive','fish'];
 const gallerySettings = {
   lantern:{size:1024,z:100,cell:6,animate:false},dragon:{size:1024,z:42,y:0,cell:4,animate:false},
-  flower:{size:512,z:35,cell:4,animate:true},hive:{size:512,z:35,cell:4,animate:true},
-  fish:{size:512,z:35,cell:4,animate:true},logo:{size:512,z:13,cell:6,animate:false}
+  flower:{size:512,z:10,cell:4,animate:true},hive:{size:512,z:35,cell:4,animate:true},
+  fish:{size:512,z:11,cell:4,animate:true},logo:{size:512,z:13,cell:6,animate:false}
 };
 let modelSpinDirection = 1;
 let previousScrollY = window.scrollY;
@@ -238,27 +238,9 @@ function createModelMaterial(name){
   return new THREE.ShaderMaterial({transparent:true,side:THREE.DoubleSide,uniforms:{uRemapColor:{value:remap},uLightDir:{value:branch?new THREE.Vector3(0,.8,1):new THREE.Vector3(0,2,1)},uBrightness:{value:brightness},uNormalStrength:{value:normalStrength}},vertexShader:modelVertexShader,fragmentShader:modelFragmentShader});
 }
 
-const boundsVertex=new THREE.Vector3();
-const boundsBox=new THREE.Box3();
-const inverseContentMatrix=new THREE.Matrix4();
-function getVisibleBounds(content){
-  boundsBox.makeEmpty();content.updateMatrixWorld(true);inverseContentMatrix.copy(content.matrixWorld).invert();
-  content.traverse((object)=>{
-    if(!object.isMesh||!object.geometry?.attributes?.position)return;
-    const position=object.geometry.attributes.position;
-    for(let index=0;index<position.count;index++){
-      boundsVertex.fromBufferAttribute(position,index);
-      if(object.isSkinnedMesh)object.applyBoneTransform(index,boundsVertex);
-      boundsVertex.applyMatrix4(object.matrixWorld).applyMatrix4(inverseContentMatrix);
-      boundsBox.expandByPoint(boundsVertex);
-    }
-  });
-  return boundsBox.isEmpty()?null:boundsBox.clone();
-}
-
 function prepareModel(gltf,name){
-  const settings=gallerySettings[name];const scene=new THREE.Scene();const root=new THREE.Group();const content=new THREE.Group();content.add(gltf.scene);root.add(content);scene.add(root);
-  const material=createModelMaterial(name);gltf.scene.traverse((child)=>{if(child.isMesh)child.material=material;});
+  const settings=gallerySettings[name];const scene=new THREE.Scene();const root=new THREE.Group();root.add(gltf.scene);scene.add(root);
+  const material=createModelMaterial(name);gltf.scene.traverse((child)=>{if(child.isMesh)child.material=child.isSkinnedMesh?new THREE.MeshBasicMaterial({side:THREE.DoubleSide}):material;});
   const camera=new THREE.PerspectiveCamera(27,1,.1,1000);
   const renderTarget=new THREE.WebGLRenderTarget(settings.size,settings.size,{depthBuffer:true,stencilBuffer:false});
   const modelMixer=settings.animate?new THREE.AnimationMixer(gltf.scene):null;
@@ -266,20 +248,8 @@ function prepareModel(gltf,name){
     gltf.animations.forEach((clip)=>{const action=modelMixer.clipAction(clip);action.setLoop(THREE.LoopRepeat,Infinity);action.play();});
     modelMixer.setTime(0);
   }
-  const fitToBounds=['flower','fish'].includes(name);
-  const bounds=fitToBounds?getVisibleBounds(content):null;
-  const center=bounds?bounds.getCenter(new THREE.Vector3()):new THREE.Vector3();
-  const size=bounds?bounds.getSize(new THREE.Vector3()):null;
-  if(bounds){
-    const largest=Math.max(size.x,size.y,size.z)||1;
-    const scale=4/largest;
-    content.scale.setScalar(scale);content.position.copy(center).multiplyScalar(-scale);scene.updateMatrixWorld(true);
-  }
-  const padding=name==='flower'?1.35:name==='fish'?1.25:1;
-  const normalizedSize=size?4:0;
-  const distance=normalizedSize?normalizedSize*.5/Math.tan(THREE.MathUtils.degToRad(27)*.5)*padding:settings.z;
-  camera.position.set(0,settings.y||0,distance);camera.lookAt(0,0,0);
-  galleryModels.push({name,scene,root,content,camera,mixer:modelMixer,target:renderTarget,settings});
+  camera.position.set(0,settings.y||0,settings.z);
+  galleryModels.push({name,scene,root,camera,mixer:modelMixer,target:renderTarget,settings});
 }
 
 function initDragonfly(){
