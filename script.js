@@ -368,8 +368,8 @@ function drawScene(time=0,delta=0){
   dragonfly.position.y=!mobileMotion&&ease>.5?(ease-.5)*9:0;
   dragonflyMotion.rotation.y=THREE.MathUtils.lerp(dragonflyMotion.rotation.y,(cursorX-.5)*.0025,.1);
   dragonflyMotion.rotation.x=THREE.MathUtils.lerp(dragonflyMotion.rotation.x,-(cursorY-.5)*.0015,.1);
-  wingPhase+=delta*(.5+19.5*(sceneProgress>.15?.85:.1));
-  const boost=sceneProgress>.15?.85:.1;const angle=THREE.MathUtils.degToRad(42+boost*200);
+  wingPhase+=delta*(.5+19.5*(sceneProgress>.15?.85:.05));
+  const boost=sceneProgress>.15?.85:.05;const angle=THREE.MathUtils.degToRad(42+boost*200);
   const back=Math.sin(wingPhase*(.1+boost))*angle*.3;const front=Math.sin(wingPhase*(.05+boost))*angle*.2;
   if(backWingLeft){backWingLeft.rotation.z=THREE.MathUtils.lerp(backWingLeft.rotation.z,front,.1);backWingRight.rotation.z=THREE.MathUtils.lerp(backWingRight.rotation.z,-front,.1);frontWingLeft.rotation.z=THREE.MathUtils.lerp(frontWingLeft.rotation.z,back*.8,.1);frontWingRight.rotation.z=THREE.MathUtils.lerp(frontWingRight.rotation.z,-back*.8,.1);}
   asciiMaterial.uniforms.uTime.value=time*.001;
