@@ -158,7 +158,7 @@ button { color: inherit; font: inherit; }
 
 .contact { padding: 28px 24px 24px; color: var(--ink); background: var(--acid); }
 .profile-card { display: flex; align-items: center; gap: 24px; padding: 24px 0; border-bottom: 1px solid var(--ink); }
-.profile-image { width: 120px; height: 80px; object-fit: cover; border: 2px solid var(--ink); }
+.profile-image { width: 120px; height: 60px; object-fit: cover; border: 2px solid var(--ink); }
 .profile-info h3 { margin: 0; font-size: clamp(24px, 3vw, 44px); font-weight: 500; letter-spacing: -.045em; }
 .profile-info p { margin: 4px 0 0; font: 11px var(--mono); letter-spacing: .07em; opacity: .7; }
 .section-label-dark { min-width: 45vw; border-color: rgba(10,10,10,.3); }
