@@ -455,32 +455,32 @@ const galleryData = {
   'nothing-lyrics': {
     title: 'NOTHING LYRICS — ANDROID APP',
     images: [
-      'https://raw.githubusercontent.com/iniharith/NothingLyrics/main/screenshots/main_screen.webp',
-      'https://raw.githubusercontent.com/iniharith/NothingLyrics/main/screenshots/aod_screen.webp',
-      'https://raw.githubusercontent.com/iniharith/NothingLyrics/main/screenshots/widget_home.webp',
-      'https://raw.githubusercontent.com/iniharith/NothingLyrics/main/screenshots/widget_pin_dialog.webp'
+      'assets/design/nothing-lyrics/main_screen.webp',
+      'assets/design/nothing-lyrics/aod_screen.webp',
+      'assets/design/nothing-lyrics/widget_home.webp',
+      'assets/design/nothing-lyrics/widget_pin_dialog.webp'
     ]
   },
   'nothing-player': {
     title: 'NOTHING PLAYER — ANDROID APP',
     images: [
-      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/01.webp',
-      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/02.webp',
-      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/03.webp',
-      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/04.webp',
-      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/05.webp',
-      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/06.webp',
-      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/07.webp',
-      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/08.webp',
-      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/09.webp',
-      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/10.webp',
-      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/11.webp',
-      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/12.webp',
-      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/13.webp',
-      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/14.webp',
-      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/15.webp',
-      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/16.webp',
-      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/17.webp'
+      'assets/design/nothing-player/01.webp',
+      'assets/design/nothing-player/02.webp',
+      'assets/design/nothing-player/03.webp',
+      'assets/design/nothing-player/04.webp',
+      'assets/design/nothing-player/05.webp',
+      'assets/design/nothing-player/06.webp',
+      'assets/design/nothing-player/07.webp',
+      'assets/design/nothing-player/08.webp',
+      'assets/design/nothing-player/09.webp',
+      'assets/design/nothing-player/10.webp',
+      'assets/design/nothing-player/11.webp',
+      'assets/design/nothing-player/12.webp',
+      'assets/design/nothing-player/13.webp',
+      'assets/design/nothing-player/14.webp',
+      'assets/design/nothing-player/15.webp',
+      'assets/design/nothing-player/16.webp',
+      'assets/design/nothing-player/17.webp'
     ]
   }
 };
