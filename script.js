@@ -395,6 +395,151 @@ function loop(time) {
   requestAnimationFrame(loop);
 }
 
+const galleryData = {
+  'apparel': {
+    title: 'APPAREL — BAJU NEGERI COLLECTION',
+    images: [
+      'assets/design/apparel/ROUND NECK SHORT SLEEVE (FRONT) SELANGOR.png',
+      'assets/design/apparel/ROUND NECK SHORT SLEEVE (BACK) SELANGOR.png',
+      'assets/design/apparel/ROUND NECK SHORT SLEEVE (FRONT) JOHOR.png',
+      'assets/design/apparel/ROUND NECK SHORT SLEEVE (BACK) JOHOR.png',
+      'assets/design/apparel/ROUND NECK SHORT SLEEVE (FRONT) SABAH.png',
+      'assets/design/apparel/ROUND NECK SHORT SLEEVE (BACK) SABAH.png',
+      'assets/design/apparel/ROUND NECK SHORT SLEEVE (FRONT) SARAWAK.png',
+      'assets/design/apparel/ROUND NECK SHORT SLEEVE (BACK) SARAWAK.png'
+    ]
+  },
+  'kampung-cetak': {
+    title: 'KAMPUNG CETAK — PRODUCT CATALOG',
+    images: [
+      'assets/design/kampung-cetak/COTTON TSHIRT.png',
+      'assets/design/kampung-cetak/CANVAS BAG.png',
+      'assets/design/kampung-cetak/FRIDGE MAGNET.png',
+      'assets/design/kampung-cetak/NON WOVEN BAG.png',
+      'assets/design/kampung-cetak/PORTRAIT.png',
+      'assets/design/kampung-cetak/SUBLIMATION TSHIRT.png',
+      'assets/design/kampung-cetak/ACRYLIC KEYCHAIN.png',
+      'assets/design/kampung-cetak/ACRYLIC TROPHY.png',
+      'assets/design/kampung-cetak/BANNER.png',
+      'assets/design/kampung-cetak/BOARD PRINTING.png',
+      'assets/design/kampung-cetak/BOOKLET.png',
+      'assets/design/kampung-cetak/BUNTING.png',
+      'assets/design/kampung-cetak/BUSINESS CARD.png',
+      'assets/design/kampung-cetak/CALENDAR.png',
+      'assets/design/kampung-cetak/CAR STICKER.png',
+      'assets/design/kampung-cetak/CERTIFICATE.png',
+      'assets/design/kampung-cetak/CORPORATE FOLDER.png',
+      'assets/design/kampung-cetak/CRYSTAL PLAQUE TROPHY.png',
+      'assets/design/kampung-cetak/FLYERS.png',
+      'assets/design/kampung-cetak/GLASS STICKER.png',
+      'assets/design/kampung-cetak/HUMAN STANDEE.png',
+      'assets/design/kampung-cetak/LANDYARD.png',
+      'assets/design/kampung-cetak/MINI X STAND.png',
+      'assets/design/kampung-cetak/MONEY PACKET.png',
+      'assets/design/kampung-cetak/MUG.png',
+      'assets/design/kampung-cetak/NOTEBOOK.jpg',
+      'assets/design/kampung-cetak/PAPER BAG.png',
+      'assets/design/kampung-cetak/PEN.png',
+      'assets/design/kampung-cetak/PERSONALISED FLAG.png',
+      'assets/design/kampung-cetak/POPUP.png',
+      'assets/design/kampung-cetak/PREMIUM GIFT.png',
+      'assets/design/kampung-cetak/ROLL UP STAND.png',
+      'assets/design/kampung-cetak/STAMP.png',
+      'assets/design/kampung-cetak/STICKER.png',
+      'assets/design/kampung-cetak/TRIPOD STAND.png',
+      'assets/design/kampung-cetak/WALL STICKER.png',
+      'assets/design/kampung-cetak/WATER BAG.png',
+      'assets/design/kampung-cetak/WIND FLAG.png'
+    ]
+  },
+  'nothing-lyrics': {
+    title: 'NOTHING LYRICS — ANDROID APP',
+    images: [
+      'https://raw.githubusercontent.com/iniharith/NothingLyrics/main/screenshots/main_screen.png',
+      'https://raw.githubusercontent.com/iniharith/NothingLyrics/main/screenshots/aod_screen.png',
+      'https://raw.githubusercontent.com/iniharith/NothingLyrics/main/screenshots/widget_home.png',
+      'https://raw.githubusercontent.com/iniharith/NothingLyrics/main/screenshots/widget_pin_dialog.png'
+    ]
+  },
+  'nothing-player': {
+    title: 'NOTHING PLAYER — ANDROID APP',
+    images: [
+      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/01.png',
+      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/02.png',
+      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/03.png',
+      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/04.png',
+      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/05.png',
+      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/06.png',
+      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/07.png',
+      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/08.png',
+      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/09.png',
+      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/10.png',
+      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/11.png',
+      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/12.png',
+      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/13.png',
+      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/14.png',
+      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/15.png',
+      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/16.png',
+      'https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/17.png'
+    ]
+  }
+};
+
+const galleryOverlay = document.getElementById('gallery-overlay');
+const galleryTrack = galleryOverlay.querySelector('.gallery-track');
+const galleryTitle = galleryOverlay.querySelector('.gallery-title');
+const galleryCount = galleryOverlay.querySelector('.gallery-count');
+const galleryClose = galleryOverlay.querySelector('.gallery-close');
+const galleryLeft = galleryOverlay.querySelector('.gallery-arrow-left');
+const galleryRight = galleryOverlay.querySelector('.gallery-arrow-right');
+
+function openGallery(key) {
+  const data = galleryData[key];
+  if (!data) return;
+  galleryTitle.textContent = data.title;
+  galleryCount.textContent = data.images.length + ' IMAGES';
+  galleryTrack.innerHTML = '';
+  data.images.forEach((src) => {
+    const item = document.createElement('div');
+    item.className = 'gallery-item';
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = data.title;
+    img.loading = 'lazy';
+    item.appendChild(img);
+    galleryTrack.appendChild(item);
+  });
+  galleryOverlay.setAttribute('aria-hidden', 'false');
+  galleryOverlay.removeAttribute('inert');
+  galleryOverlay.classList.add('is-open');
+  document.body.classList.add('menu-open');
+  galleryTrack.scrollLeft = 0;
+}
+
+function closeGallery() {
+  galleryOverlay.classList.remove('is-open');
+  galleryOverlay.setAttribute('aria-hidden', 'true');
+  galleryOverlay.setAttribute('inert', '');
+  document.body.classList.remove('menu-open');
+}
+
+document.querySelectorAll('.mockup-card[data-gallery]').forEach((card) => {
+  const handler = () => openGallery(card.dataset.gallery);
+  card.addEventListener('click', handler);
+  card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handler(); } });
+});
+
+galleryClose.addEventListener('click', closeGallery);
+galleryOverlay.querySelector('.gallery-backdrop').addEventListener('click', closeGallery);
+document.addEventListener('keydown', (e) => {
+  if (!galleryOverlay.classList.contains('is-open')) return;
+  if (e.key === 'Escape') closeGallery();
+  if (e.key === 'ArrowRight') galleryTrack.scrollBy({ left: 400, behavior: 'smooth' });
+  if (e.key === 'ArrowLeft') galleryTrack.scrollBy({ left: -400, behavior: 'smooth' });
+});
+galleryLeft.addEventListener('click', () => galleryTrack.scrollBy({ left: -400, behavior: 'smooth' }));
+galleryRight.addEventListener('click', () => galleryTrack.scrollBy({ left: 400, behavior: 'smooth' }));
+
 requestAnimationFrame(loop);
 if (reduceMotion) {
   updateFluid();

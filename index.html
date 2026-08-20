@@ -15,12 +15,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=20260818">
+    <link rel="stylesheet" href="styles.css?v=20260820-1">
     <script src="https://unpkg.com/lenis@1.1.14/dist/lenis.min.js" defer></script>
     <script type="importmap">
       {"imports":{"three":"./assets/three/three.module.js","three/addons/":"./assets/three/addons/"}}
     </script>
-    <script type="module" src="script.js?v=20260814-5"></script>
+    <script type="module" src="script.js?v=20260820-1"></script>
   </head>
   <body>
     <div class="aurora aurora--global" aria-hidden="true"><span></span><span></span></div>
@@ -184,40 +184,44 @@
           <span class="design-scroll-hint">SCROLL →</span>
         </div>
         <div class="mockup-grid" data-parallax="0.15">
-          <figure class="mockup-card mockup-card-tall reveal">
+          <figure class="mockup-card mockup-card-tall reveal" data-gallery="apparel" role="button" tabindex="0">
             <div class="mockup-image">
-              <img src="https://raw.githubusercontent.com/iniharith/shop-co/main/backend/public/green-shirt-0.webp" alt="Green short-sleeve shirt back mockup with typographic print" loading="lazy">
+              <img src="assets/design/apparel/ROUND NECK SHORT SLEEVE (FRONT) SELANGOR.png" alt="Round neck short sleeve shirt mockup - Selangor state design" loading="lazy">
               <span class="mockup-index">01</span>
+              <span class="mockup-view">VIEW GALLERY</span>
             </div>
             <figcaption>
-              <span>YOUTH CULTURE</span>
-              <span>BACK PRINT / TYPOGRAPHY</span>
+              <span>APPAREL</span>
+              <span>BAJU NEGERI / COLLECTION</span>
             </figcaption>
           </figure>
-          <figure class="mockup-card mockup-card-site reveal">
+          <figure class="mockup-card mockup-card-site reveal" data-gallery="kampung-cetak" role="button" tabindex="0">
             <div class="mockup-image">
-              <img src="https://raw.githubusercontent.com/iniharith/kampungcetak.com/main/public/images/header-homepage.png" alt="Kampung Cetak digital printing platform homepage screenshot" loading="lazy">
+              <img src="assets/design/kampung-cetak/COTTON TSHIRT.png" alt="Kampung Cetak cotton tshirt product" loading="lazy">
               <span class="mockup-index">02</span>
+              <span class="mockup-view">VIEW GALLERY</span>
             </div>
             <figcaption>
               <span>KAMPUNG CETAK</span>
               <span>COMMERCE SITE / WEB</span>
             </figcaption>
           </figure>
-          <figure class="mockup-card mockup-card-app reveal">
+          <figure class="mockup-card mockup-card-app reveal" data-gallery="nothing-lyrics" role="button" tabindex="0">
             <div class="mockup-image">
               <img src="https://raw.githubusercontent.com/iniharith/NothingLyrics/main/screenshots/main_screen.png" alt="NothingLyrics Android app main screen" loading="lazy">
               <span class="mockup-index">03</span>
+              <span class="mockup-view">VIEW GALLERY</span>
             </div>
             <figcaption>
               <span>NOTHING LYRICS</span>
               <span>ANDROID APP / UI</span>
             </figcaption>
           </figure>
-          <figure class="mockup-card mockup-card-app mockup-card-app-two reveal">
+          <figure class="mockup-card mockup-card-app mockup-card-app-two reveal" data-gallery="nothing-player" role="button" tabindex="0">
             <div class="mockup-image">
               <img src="https://raw.githubusercontent.com/iniharith/Nothing-Player/main/asset/screenshot/01.png" alt="Nothing Player Android music app screenshot" loading="lazy">
               <span class="mockup-index">04</span>
+              <span class="mockup-view">VIEW GALLERY</span>
             </div>
             <figcaption>
               <span>NOTHING PLAYER</span>
@@ -230,6 +234,22 @@
           <p>This archive will grow as new visual studies, shipped interfaces, and production mockups are completed.</p>
         </div>
       </section>
+
+      <div class="gallery-overlay" id="gallery-overlay" role="dialog" aria-modal="true" aria-hidden="true" inert>
+        <div class="gallery-backdrop"></div>
+        <div class="gallery-panel">
+          <div class="gallery-header">
+            <span class="gallery-title"></span>
+            <span class="gallery-count"></span>
+            <button class="gallery-close" type="button" aria-label="Close gallery">&times;</button>
+          </div>
+          <div class="gallery-track"></div>
+          <div class="gallery-nav">
+            <button class="gallery-arrow gallery-arrow-left" type="button" aria-label="Previous">&larr;</button>
+            <button class="gallery-arrow gallery-arrow-right" type="button" aria-label="Next">&rarr;</button>
+          </div>
+        </div>
+      </div>
 
       <section class="section approach" id="approach">
         <div class="aurora" aria-hidden="true"><span></span><span></span></div>
