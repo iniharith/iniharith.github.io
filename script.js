@@ -4,6 +4,33 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+const assetLoader = document.querySelector('#asset-loader');
+const assetLoaderCount = document.querySelector('.asset-loader-count');
+let loaderFinished = false;
+function dismissAssetLoader(delay = 250) {
+  if (loaderFinished || !assetLoader || !assetLoader.isConnected) return;
+  loaderFinished = true;
+  setTimeout(() => {
+    assetLoader.classList.add('is-done');
+    setTimeout(() => assetLoader.remove(), 700);
+  }, delay);
+}
+if (assetLoader && !reduceMotion) {
+  THREE.DefaultLoadingManager.onProgress = (url, loaded, total) => {
+    if (assetLoaderCount && total) {
+      assetLoaderCount.textContent = `${String(Math.round((loaded / total) * 100)).padStart(3, '0')}%`;
+    }
+  };
+  THREE.DefaultLoadingManager.onLoad = () => dismissAssetLoader(350);
+  THREE.DefaultLoadingManager.onError = (url) => {
+    console.warn('Asset failed to load:', url);
+    dismissAssetLoader(0);
+  };
+  setTimeout(() => dismissAssetLoader(0), 15000);
+} else if (assetLoader) {
+  assetLoader.remove();
+}
+
 const menuButton = document.querySelector('.menu-toggle');
 const menu = document.querySelector('.menu');
 const menuLinks = document.querySelectorAll('.menu a');
@@ -47,20 +74,35 @@ const projectLabels = {
   lyrics: 'LYRIC',
   print: 'PRINT'
 };
+const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+function showPreview(project) {
+  const type = project.dataset.project;
+  previewContent.dataset.type = type;
+  previewContent.dataset.label = projectLabels[type];
+  preview.classList.add('is-visible');
+}
+
+function hidePreview() {
+  preview.classList.remove('is-visible');
+}
 
 document.querySelectorAll('.project').forEach((project) => {
-  project.addEventListener('mouseenter', () => {
-    const type = project.dataset.project;
-    previewContent.dataset.type = type;
-    previewContent.dataset.label = projectLabels[type];
-    preview.classList.add('is-visible');
-  });
-  project.addEventListener('mouseleave', () => preview.classList.remove('is-visible'));
+  const link = project.querySelector('a');
+  if (canHover) {
+    project.addEventListener('mouseenter', () => showPreview(project));
+    project.addEventListener('mouseleave', hidePreview);
+  }
+  link.addEventListener('focus', () => showPreview(project));
+  link.addEventListener('blur', hidePreview);
 });
 
 window.addEventListener('pointermove', (event) => {
-  preview.style.left = `${event.clientX + 24}px`;
-  preview.style.top = `${event.clientY - 20}px`;
+  if (!preview.classList.contains('is-visible')) return;
+  const x = Math.min(Math.max(event.clientX + 24, 172), window.innerWidth - 172);
+  const y = Math.min(Math.max(event.clientY - 20, 122), window.innerHeight - 122);
+  preview.style.left = `${x}px`;
+  preview.style.top = `${y}px`;
 });
 
 const auroraGlobal = document.querySelector('.aurora--global');
@@ -269,7 +311,14 @@ function prepareModel(gltf,name){
 }
 
 function initDragonfly(){
-  renderer=new THREE.WebGLRenderer({canvas:heroCanvas,alpha:true,antialias:false,powerPreference:'high-performance'});
+  try {
+    renderer = new THREE.WebGLRenderer({canvas:heroCanvas,alpha:true,antialias:false,powerPreference:'high-performance'});
+  } catch (error) {
+    console.warn('WebGL unavailable — hero scene disabled:', error);
+    document.body.classList.add('no-webgl');
+    dismissAssetLoader(0);
+    return;
+  }
   renderer.setClearColor(0x000000,0);
   modelScene=new THREE.Scene();
   modelCamera=new THREE.PerspectiveCamera(mobileMotion?16:11,1,.1,1000);
@@ -546,4 +595,21 @@ if (reduceMotion) {
 } else {
   updateParallax();
   updateFluid();
+}
+
+const nowStatus = document.querySelector('#now-status');
+const nowText = document.querySelector('#now-text');
+const nowUpdated = document.querySelector('#now-updated');
+if (nowStatus && nowText) {
+  fetch('assets/now.json')
+    .then((response) => (response.ok ? response.json() : Promise.reject(new Error(String(response.status)))))
+    .then((data) => {
+      if (!data || !data.text) return;
+      nowText.textContent = data.text;
+      if (nowUpdated && data.updated) nowUpdated.textContent = data.updated;
+      nowStatus.hidden = false;
+    })
+    .catch(() => {
+      nowStatus.hidden = true;
+    });
 }

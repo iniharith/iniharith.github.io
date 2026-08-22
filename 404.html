@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>404 — Page not found | Ini Harith</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@500;600&display=swap" rel="stylesheet">
+  <style>
+    :root { --ink:#0a0a0a; --acid:#c7ff16; --paper:#f1f0ea; --mono:"DM Mono",monospace; --sans:"Manrope",Arial,sans-serif; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100svh; display:flex; flex-direction:column; justify-content:center; padding:24px; background:var(--ink); color:var(--paper); font-family:var(--sans); }
+    .grid-bg { position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.25;
+      background-image:linear-gradient(var(--acid) 1px, transparent 1px), linear-gradient(90deg, var(--acid) 1px, transparent 1px);
+      background-size:100px 100px; }
+    main { position:relative; z-index:1; max-width:680px; }
+    .kicker { display:flex; align-items:center; gap:8px; margin-bottom:20px; color:var(--acid); font:11px var(--mono); letter-spacing:.08em; text-transform:uppercase; }
+    .dot { width:7px; height:7px; border-radius:50%; background:var(--acid); box-shadow:0 0 15px var(--acid); }
+    h1 { margin:0; font-size:clamp(120px,28vw,300px); font-weight:600; letter-spacing:-.08em; line-height:.8; color:var(--acid); }
+    h2 { margin:14px 0 10px; font-size:clamp(22px,4vw,34px); font-weight:500; letter-spacing:-.04em; }
+    p { margin:0 0 30px; font:12px var(--mono); letter-spacing:.05em; color:rgba(241,240,234,.55); line-height:1.7; }
+    a.home { display:inline-flex; align-items:center; gap:12px; padding:14px 22px; border-radius:4px; background:var(--acid); color:var(--ink); font:700 13px var(--sans); letter-spacing:.02em; transition:transform .15s ease; }
+    a.home:hover { transform:translateY(-2px); }
+    .foot { position:absolute; bottom:22px; left:24px; font:10px var(--mono); letter-spacing:.07em; color:rgba(241,240,234,.35); }
+  </style>
+</head>
+<body>
+  <div class="grid-bg" aria-hidden="true"></div>
+  <main>
+    <div class="kicker"><span class="dot"></span>ERROR / 404</div>
+    <h1>404</h1>
+    <h2>This page flew off.</h2>
+    <p>The dragonfly checked every pixel — nothing here. The link may be broken, or the page was moved.</p>
+    <a class="home" href="/">← BACK TO INIHARITH.GITHUB.IO</a>
+  </main>
+  <div class="foot">INI HARITH © 2026</div>
+</body>
+</html>

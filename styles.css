@@ -214,6 +214,20 @@ button { color: inherit; font: inherit; }
 .footer { display: grid; grid-template-columns: 1fr 1fr 1fr; padding-top: 22px; font: 11px var(--mono); letter-spacing: .07em; }
 .footer-links { justify-self: end; display: flex; gap: 25px; }
 
+.asset-loader { position: fixed; z-index: 40; top: 60px; right: 12px; display: grid; gap: 3px; justify-items: end; padding: 10px 14px; color: var(--acid); background: rgba(10,10,10,.85); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); font-family: var(--mono); pointer-events: none; transition: opacity .5s ease, transform .5s ease; }
+.asset-loader.is-done { opacity: 0; transform: translateY(-8px); }
+.asset-loader-count { font-size: 20px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.asset-loader-label { font-size: 9px; letter-spacing: .16em; opacity: .55; }
+body.no-webgl #hero-scene { display: none; }
+.email-cta { display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 26px 0; border-bottom: 1px solid var(--ink); font-size: clamp(19px, 2.4vw, 34px); font-weight: 500; letter-spacing: -.04em; transition: padding .3s ease; }
+.email-cta:hover, .email-cta:focus-visible { padding-left: 12px; outline: none; }
+.email-cta-action { font: 11px var(--mono); letter-spacing: .08em; white-space: nowrap; transition: transform .25s ease; }
+.email-cta:hover .email-cta-action, .email-cta:focus-visible .email-cta-action { transform: translateX(6px); }
+.now-status { display: flex; align-items: center; gap: 10px; padding: 16px 0 2px; font: 11px var(--mono); letter-spacing: .07em; text-transform: uppercase; }
+.now-status[hidden] { display: none; }
+.now-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink); animation: pulse 2s infinite; }
+#now-updated { margin-left: auto; opacity: .6; }
+
 .reveal { opacity: 0; transform: translateY(35px); transition: opacity .7s ease, transform 1s cubic-bezier(.65, 0, .35, 1); }
 .reveal[data-parallax] { transform: none; transition: opacity .7s ease; }
 .reveal.is-visible { opacity: 1; transform: translateY(0); }

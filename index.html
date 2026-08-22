@@ -9,21 +9,33 @@
     <meta property="og:description" content="Selected projects and experiments by Ini Harith.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://iniharith.github.io/">
-    <meta property="og:image" content="https://iniharith.github.io/og-image.svg">
+    <meta property="og:image" content="https://iniharith.github.io/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:type" content="image/png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Ini Harith - Full-Stack Developer">
+    <meta name="twitter:description" content="Selected projects and experiments by Ini Harith.">
+    <meta name="twitter:image" content="https://iniharith.github.io/og-image.png">
+    <link rel="canonical" href="https://iniharith.github.io/">
     <title>Ini Harith - Full-Stack Developer</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=20260820-1">
+    <link rel="stylesheet" href="styles.css?v=20260822">
     <script src="https://unpkg.com/lenis@1.1.14/dist/lenis.min.js" defer></script>
     <script type="importmap">
       {"imports":{"three":"./assets/three/three.module.js","three/addons/":"./assets/three/addons/"}}
     </script>
-    <script type="module" src="script.js?v=20260820-1"></script>
+    <script type="module" src="script.js?v=20260822"></script>
   </head>
   <body>
     <div class="aurora aurora--global" aria-hidden="true"><span></span><span></span></div>
+    <div class="asset-loader" id="asset-loader" aria-hidden="true">
+      <span class="asset-loader-count">000%</span>
+      <span class="asset-loader-label">COMPILING SCENE</span>
+    </div>
     <div class="noise" aria-hidden="true"></div>
     <canvas id="hero-scene" aria-hidden="true"></canvas>
     <header class="site-header">
@@ -114,7 +126,7 @@
 
         <div class="project-list">
           <article class="project reveal" data-project="commerce">
-            <a href="https://github.com/iniharith/shop-co" target="_blank" rel="noreferrer" aria-label="View Shop-Co on GitHub">
+            <a href="projects/shop-co.html" aria-label="Read the Shop-Co case study">
               <span class="project-number">01</span>
               <div class="project-name">
                 <h3>SHOP-CO</h3>
@@ -126,7 +138,7 @@
             </a>
           </article>
           <article class="project reveal" data-project="player">
-            <a href="https://github.com/iniharith/Nothing-Player" target="_blank" rel="noreferrer" aria-label="View Nothing Player on GitHub">
+            <a href="projects/nothing-player.html" aria-label="Read the Nothing Player case study">
               <span class="project-number">02</span>
               <div class="project-name">
                 <h3>NOTHING PLAYER</h3>
@@ -138,7 +150,7 @@
             </a>
           </article>
           <article class="project reveal" data-project="lyrics">
-            <a href="https://github.com/iniharith/NothingLyrics" target="_blank" rel="noreferrer" aria-label="View NothingLyrics on GitHub">
+            <a href="projects/nothing-lyrics.html" aria-label="Read the Nothing Lyrics case study">
               <span class="project-number">03</span>
               <div class="project-name">
                 <h3>NOTHING LYRICS</h3>
@@ -150,7 +162,7 @@
             </a>
           </article>
           <article class="project reveal" data-project="print">
-            <a href="https://kampungcetakcom.vercel.app" target="_blank" rel="noreferrer" aria-label="Visit Kampung Cetak website">
+            <a href="projects/kampung-cetak.html" aria-label="Read the Kampung Cetak case study">
               <span class="project-number">04</span>
               <div class="project-name">
                 <h3>KAMPUNG CETAK</h3>
@@ -292,11 +304,20 @@
           <p>HAVE A PROJECT, AN IDEA,<br>OR JUST WANT TO SAY HELLO?</p>
         </div>
         <div class="profile-card reveal">
-          <img src="profile.jpg" alt="Harith" class="profile-image">
+          <img src="profile.webp" alt="Harith" class="profile-image" width="480" height="480">
           <div class="profile-info">
             <h3>Harith</h3>
             <p>Full-Stack Developer & Senior Graphic Designer</p>
           </div>
+        </div>
+        <a class="email-cta reveal" href="mailto:hello@iniharith.dev?subject=Project%20inquiry">
+          <span>hello@iniharith.dev</span>
+          <span class="email-cta-action">SAY HELLO →</span>
+        </a>
+        <div class="now-status reveal" id="now-status" hidden>
+          <span class="now-dot" aria-hidden="true"></span>
+          <span id="now-text"></span>
+          <span id="now-updated"></span>
         </div>
         <a class="contact-cta reveal" href="https://github.com/iniharith" target="_blank" rel="noreferrer">
           <span>LET'S BUILD</span>
