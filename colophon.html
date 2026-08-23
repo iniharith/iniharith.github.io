@@ -65,7 +65,7 @@
       <p>Two custom GLSL programs do the work. Nothing about the materials is stock.</p>
       <div>
         <dl class="spec-list">
-          <div><dt>MODEL FRAGMENT</dt><dd>Hero pieces use a custom shader — dot-product lighting on recomputed normals, remapped into an acid-green palette. Gallery pieces are lit as standard PBR meshes under a studio environment before quantization.</dd></div>
+          <div><dt>MODEL FRAGMENT</dt><dd>Luminance comes from dot-product lighting on recomputed normals, remapped into an acid-green palette with per-model brightness, normal strength, and color uniforms.</dd></div>
           <div><dt>ASCII POST</dt><dd>Splits the frame into cells (size tracks device pixel ratio), maps luminance to a glyph index, samples the atlas, and modulates alpha so bright surfaces dissolve into dense glyphs.</dd></div>
           <div><dt>GLYPH ATLAS</dt><dd>The character set <code>* _&lt;&gt;,./O#SF+</code> is drawn once onto a canvas texture at startup — no image assets involved.</dd></div>
         </dl>

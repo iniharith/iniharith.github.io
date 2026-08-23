@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -212,7 +211,6 @@ const gallerySettings = {
   fish:{size:512,z:11,cell:6,animate:true},logo:{size:512,z:13,cell:6,animate:false}
 };
 let modelSpinDirection = 1;
-let galleryEnv = null;
 let previousScrollY = window.scrollY;
 let activeModel = '';
 const vertexShader = `varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position,1.0);}`;
@@ -253,7 +251,7 @@ const fragmentShader = `
   void main(){
     vec2 division=uResolution/uCell;vec2 d=1.0/division;vec2 pixelizedUV=d*(floor(vUv/d)+.5);
     vec4 pixelizedColor=texture2D(tScene,pixelizedUV);float gray=clamp(dot(pixelizedColor.rgb,vec3(.299,.587,.114))*uLuminanceBoost,0.0,1.0);
-    float charIndex=floor(gray*15.99);float charX=mod(charIndex,16.0);
+    float charIndex=floor(gray*14.0);float charX=mod(charIndex,16.0);
     vec2 local=fract(vUv*division);vec2 charUV=(vec2(charX,0.0)+vec2(local.x,1.0-local.y))/16.0;
     float glyph=texture2D(tGlyphs,charUV).r;
     float alpha=mix(pixelizedColor.a,glyph*max(gray,.38)*pixelizedColor.a,uBlack)*uFade;
@@ -265,7 +263,7 @@ function createGlyphTexture(){
   const canvas=document.createElement('canvas');
   canvas.width=1024;canvas.height=1024;
   const glyphContext=canvas.getContext('2d');
-  const characters=' .,:;-~x+*/O#SF@';
+  const characters=' * _<>,  ./O#SF +';
   glyphContext.clearRect(0,0,1024,1024);glyphContext.fillStyle='#fff';glyphContext.font='72px monospace';
   glyphContext.textAlign='center';glyphContext.textBaseline='middle';
   for(let row=0;row<16;row++){
@@ -298,21 +296,9 @@ function createModelMaterial(name){
   return new THREE.ShaderMaterial({transparent:true,side:THREE.DoubleSide,uniforms:{uRemapColor:{value:remap},uLightDir:{value:branch?new THREE.Vector3(0,.8,1):new THREE.Vector3(0,2,1)},uBrightness:{value:brightness},uNormalStrength:{value:normalStrength}},vertexShader:modelVertexShader,fragmentShader:modelFragmentShader});
 }
 
-const studioPalette = {
-  lantern:{color:0xf1f0ea,roughness:.38,metalness:.05},
-  dragon:{color:0x141414,roughness:.22,metalness:.78},
-  flower:{color:0xc7ff16,roughness:.45,metalness:.02},
-  hive:{color:0xc9a24b,roughness:.3,metalness:.85},
-  fish:{color:0xdcdcdc,roughness:.12,metalness:1},
-  logo:{color:0xf1f0ea,roughness:.5,metalness:0}
-};
-
 function prepareModel(gltf,name){
   const settings=gallerySettings[name];const scene=new THREE.Scene();const root=new THREE.Group();root.add(gltf.scene);scene.add(root);
-  const look=studioPalette[name]||studioPalette.logo;
-  const material=new THREE.MeshStandardMaterial({color:look.color,roughness:look.roughness,metalness:look.metalness,side:THREE.DoubleSide});
-  gltf.scene.traverse((child)=>{if(child.isMesh)child.material=material;});
-  scene.environment=galleryEnv;
+  const material=createModelMaterial(name);gltf.scene.traverse((child)=>{if(child.isMesh)child.material=material;});
   const camera=new THREE.PerspectiveCamera(27,1,.1,1000);
   const renderTarget=new THREE.WebGLRenderTarget(settings.size,settings.size,{depthBuffer:true,stencilBuffer:false});
   const modelMixer=settings.animate?new THREE.AnimationMixer(gltf.scene):null;
@@ -321,7 +307,7 @@ function prepareModel(gltf,name){
     modelMixer.setTime(0);
   }
   camera.position.set(0,settings.y||0,settings.z);
-  galleryModels.push({name,scene,root,camera,mixer:modelMixer,target:renderTarget,settings,hoverScale:1});
+  galleryModels.push({name,scene,root,camera,mixer:modelMixer,target:renderTarget,settings});
 }
 
 function initDragonfly(){
@@ -334,9 +320,6 @@ function initDragonfly(){
     return;
   }
   renderer.setClearColor(0x000000,0);
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.1;
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
   modelScene=new THREE.Scene();
   modelCamera=new THREE.PerspectiveCamera(mobileMotion?16:11,1,.1,1000);
   modelCamera.position.set(0,0,7);
@@ -346,8 +329,6 @@ function initDragonfly(){
   postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),asciiMaterial));
   const draco=new DRACOLoader();draco.setDecoderPath('assets/draco/');draco.setDecoderConfig({type:'wasm'});
   const loader=new GLTFLoader();loader.setDRACOLoader(draco);
-  const pmrem=new THREE.PMREMGenerator(renderer);
-  galleryEnv=pmrem.fromScene(new RoomEnvironment(),.04).texture;
   loader.load('assets/models/dragonfly.glb',(gltf)=>{
     dragonfly=new THREE.Group();dragonflyMotion=new THREE.Group();dragonflyMotion.add(gltf.scene);dragonfly.add(dragonflyMotion);
     const dragonflyMaterial=createModelMaterial('dragonfly');
@@ -393,10 +374,8 @@ function drawScene(time=0,delta=0){
       const black=['lantern','logo'].includes(entry.name);const bright=['flower','fish','hive','dragon'].includes(entry.name);
       asciiMaterial.uniforms.uColor.value.set(activeModel===entry.name?0xc7ff16:black?0x000000:0xffffff);
       asciiMaterial.uniforms.uBlack.value=black&&activeModel!==entry.name?1:0;
-      asciiMaterial.uniforms.uLuminanceBoost.value=bright?1.9:mobileMotion?1.5:1.15;
-      asciiMaterial.uniforms.uGlyphFloor.value=bright?.5:.62;
-      entry.hoverScale=THREE.MathUtils.lerp(entry.hoverScale,activeModel===entry.name?1.06:1,.12);
-      entry.root.scale.setScalar(entry.hoverScale);
+      asciiMaterial.uniforms.uLuminanceBoost.value=bright?2.4:mobileMotion?1.5:1;
+      asciiMaterial.uniforms.uGlyphFloor.value=bright?.6:mobileMotion?.88:.72;
       if(entry.settings.spin!==false)entry.scene.rotation.y+=delta*.25*modelSpinDirection;
       entry.root.rotation.y=THREE.MathUtils.lerp(entry.root.rotation.y,window.scrollY*.005,.3);
       if(entry.mixer)entry.mixer.update(delta);
