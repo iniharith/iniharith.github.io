@@ -253,7 +253,7 @@ const fragmentShader = `
   void main(){
     vec2 division=uResolution/uCell;vec2 d=1.0/division;vec2 pixelizedUV=d*(floor(vUv/d)+.5);
     vec4 pixelizedColor=texture2D(tScene,pixelizedUV);float gray=clamp(dot(pixelizedColor.rgb,vec3(.299,.587,.114))*uLuminanceBoost,0.0,1.0);
-    float charIndex=floor(gray*14.0);float charX=mod(charIndex,16.0);
+    float charIndex=floor(gray*15.99);float charX=mod(charIndex,16.0);
     vec2 local=fract(vUv*division);vec2 charUV=(vec2(charX,0.0)+vec2(local.x,1.0-local.y))/16.0;
     float glyph=texture2D(tGlyphs,charUV).r;
     float alpha=mix(pixelizedColor.a,glyph*max(gray,.38)*pixelizedColor.a,uBlack)*uFade;
@@ -265,7 +265,7 @@ function createGlyphTexture(){
   const canvas=document.createElement('canvas');
   canvas.width=1024;canvas.height=1024;
   const glyphContext=canvas.getContext('2d');
-  const characters=' * _<>,  ./O#SF +';
+  const characters=' .,:;-~x+*/O#SF@';
   glyphContext.clearRect(0,0,1024,1024);glyphContext.fillStyle='#fff';glyphContext.font='72px monospace';
   glyphContext.textAlign='center';glyphContext.textBaseline='middle';
   for(let row=0;row<16;row++){
@@ -314,13 +314,14 @@ function prepareModel(gltf,name){
   gltf.scene.traverse((child)=>{if(child.isMesh)child.material=material;});
   scene.environment=galleryEnv;
   const camera=new THREE.PerspectiveCamera(27,1,.1,1000);
+  const renderTarget=new THREE.WebGLRenderTarget(settings.size,settings.size,{depthBuffer:true,stencilBuffer:false});
   const modelMixer=settings.animate?new THREE.AnimationMixer(gltf.scene):null;
   if(modelMixer){
     gltf.animations.forEach((clip)=>{const action=modelMixer.clipAction(clip);action.setLoop(THREE.LoopRepeat,Infinity);action.play();});
     modelMixer.setTime(0);
   }
   camera.position.set(0,settings.y||0,settings.z);
-  galleryModels.push({name,scene,root,camera,mixer:modelMixer,settings,hoverScale:1});
+  galleryModels.push({name,scene,root,camera,mixer:modelMixer,target:renderTarget,settings,hoverScale:1});
 }
 
 function initDragonfly(){
@@ -382,22 +383,32 @@ function drawScene(time=0,delta=0){
     dragonfly.visible=false;
     if(window.scrollY!==previousScrollY)modelSpinDirection=window.scrollY>previousScrollY?1:-1;
     previousScrollY=window.scrollY;
+    asciiMaterial.uniforms.uFade.value=1;asciiMaterial.uniforms.uTime.value=time*.001;
     renderer.setRenderTarget(null);renderer.setScissorTest(false);renderer.clear();
     modelViewports.forEach((viewport)=>{
       const rect=viewport.getBoundingClientRect();
       if(rect.bottom<=0||rect.top>=heroHeight)return;
       const entry=galleryModels.find((model)=>model.name===viewport.dataset.model);
       if(!entry)return;
+      const black=['lantern','logo'].includes(entry.name);const bright=['flower','fish','hive','dragon'].includes(entry.name);
+      asciiMaterial.uniforms.uColor.value.set(activeModel===entry.name?0xc7ff16:black?0x000000:0xffffff);
+      asciiMaterial.uniforms.uBlack.value=black&&activeModel!==entry.name?1:0;
+      asciiMaterial.uniforms.uLuminanceBoost.value=bright?1.9:mobileMotion?1.5:1.15;
+      asciiMaterial.uniforms.uGlyphFloor.value=bright?.5:.62;
+      entry.hoverScale=THREE.MathUtils.lerp(entry.hoverScale,activeModel===entry.name?1.06:1,.12);
+      entry.root.scale.setScalar(entry.hoverScale);
       if(entry.settings.spin!==false)entry.scene.rotation.y+=delta*.25*modelSpinDirection;
       entry.root.rotation.y=THREE.MathUtils.lerp(entry.root.rotation.y,window.scrollY*.005,.3);
       if(entry.mixer)entry.mixer.update(delta);
-      entry.hoverScale=THREE.MathUtils.lerp(entry.hoverScale,activeModel===entry.name?1.07:1,.12);
-      entry.root.scale.setScalar(entry.hoverScale);
+      const ratio=mobileMotion?1:Math.min(window.devicePixelRatio||1,1.5);
+      const width=Math.max(1,Math.round(rect.width*ratio));const height=Math.max(1,Math.round(rect.height*ratio));
       entry.camera.aspect=1;entry.camera.updateProjectionMatrix();
-      renderer.setScissorTest(true);
+      asciiMaterial.uniforms.tScene.value=entry.target.texture;asciiMaterial.uniforms.uResolution.value.set(width,height);
+      asciiMaterial.uniforms.uCell.value=(mobileMotion?Math.max(3,(entry.settings.cell||6)-1):entry.settings.cell||6)*ratio;
+      renderer.setRenderTarget(entry.target);renderer.clear();renderer.render(entry.scene,entry.camera);
+      renderer.setRenderTarget(null);renderer.setScissorTest(true);
       const bottom=heroHeight-rect.bottom;
-      renderer.setViewport(rect.left,bottom,rect.width,rect.height);renderer.setScissor(rect.left,bottom,rect.width,rect.height);renderer.clear();
-      renderer.render(entry.scene,entry.camera);
+      renderer.setViewport(rect.left,bottom,rect.width,rect.height);renderer.setScissor(rect.left,bottom,rect.width,rect.height);renderer.render(postScene,postCamera);
     });
     renderer.setScissorTest(false);
     return;
