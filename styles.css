@@ -15,11 +15,11 @@ html { scroll-behavior: smooth; }
 }
 
 html.ascii-easter body { font-family: var(--mono) !important; }
-.ascii-overlay { position: fixed; z-index: 60; inset: 0; display: none; place-items: center; background: rgba(10,10,10,.95); color: var(--acid); overflow: hidden; }
+.ascii-overlay { position: fixed; z-index: 60; inset: 0; display: none; place-items: center; background: rgba(10,10,10,.96); color: var(--acid); overflow: hidden; }
 .ascii-overlay.is-active { display: grid; }
-.ascii-edge { position: absolute; top: 50%; transform: translateY(-50%); writing-mode: vertical-rl; font: 12px var(--mono); letter-spacing: .35em; opacity: .5; white-space: nowrap; pointer-events: none; }
-.ascii-edge--left { left: 14px; }
-.ascii-edge--right { right: 14px; }
+.ascii-bg { position: absolute; inset: -14px; margin: 0; font: 12px/1 var(--mono); letter-spacing: .18em; white-space: pre; overflow: hidden; pointer-events: none; user-select: none; }
+.ascii-bg--far { color: rgba(199,255,22,.07); transform: translate(-6px,-6px); }
+.ascii-bg--near { color: rgba(199,255,22,.16); }
 .ascii-panel { position: relative; text-align: center; padding: clamp(28px, 6vw, 64px); border: 1px solid rgba(199,255,22,.4); background: rgba(10,10,10,.6); }
 .ascii-panel::before { content: "[" attr(data-corner-a) "]"; position: absolute; top: -9px; left: 14px; font: 12px var(--mono); color: var(--paper); background: var(--ink); padding: 0 6px; }
 .ascii-panel::after { content: "[" attr(data-corner-b) "]"; position: absolute; bottom: -9px; right: 14px; font: 12px var(--mono); color: var(--paper); background: var(--ink); padding: 0 6px; }

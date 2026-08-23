@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -211,6 +212,7 @@ const gallerySettings = {
   fish:{size:512,z:11,cell:6,animate:true},logo:{size:512,z:13,cell:6,animate:false}
 };
 let modelSpinDirection = 1;
+let galleryEnv = null;
 let previousScrollY = window.scrollY;
 let activeModel = '';
 const vertexShader = `varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position,1.0);}`;
@@ -296,18 +298,29 @@ function createModelMaterial(name){
   return new THREE.ShaderMaterial({transparent:true,side:THREE.DoubleSide,uniforms:{uRemapColor:{value:remap},uLightDir:{value:branch?new THREE.Vector3(0,.8,1):new THREE.Vector3(0,2,1)},uBrightness:{value:brightness},uNormalStrength:{value:normalStrength}},vertexShader:modelVertexShader,fragmentShader:modelFragmentShader});
 }
 
+const studioPalette = {
+  lantern:{color:0xf1f0ea,roughness:.38,metalness:.05},
+  dragon:{color:0x141414,roughness:.22,metalness:.78},
+  flower:{color:0xc7ff16,roughness:.45,metalness:.02},
+  hive:{color:0xc9a24b,roughness:.3,metalness:.85},
+  fish:{color:0xdcdcdc,roughness:.12,metalness:1},
+  logo:{color:0xf1f0ea,roughness:.5,metalness:0}
+};
+
 function prepareModel(gltf,name){
   const settings=gallerySettings[name];const scene=new THREE.Scene();const root=new THREE.Group();root.add(gltf.scene);scene.add(root);
-  const material=createModelMaterial(name);gltf.scene.traverse((child)=>{if(child.isMesh)child.material=material;});
+  const look=studioPalette[name]||studioPalette.logo;
+  const material=new THREE.MeshStandardMaterial({color:look.color,roughness:look.roughness,metalness:look.metalness,side:THREE.DoubleSide});
+  gltf.scene.traverse((child)=>{if(child.isMesh)child.material=material;});
+  scene.environment=galleryEnv;
   const camera=new THREE.PerspectiveCamera(27,1,.1,1000);
-  const renderTarget=new THREE.WebGLRenderTarget(settings.size,settings.size,{depthBuffer:true,stencilBuffer:false});
   const modelMixer=settings.animate?new THREE.AnimationMixer(gltf.scene):null;
   if(modelMixer){
     gltf.animations.forEach((clip)=>{const action=modelMixer.clipAction(clip);action.setLoop(THREE.LoopRepeat,Infinity);action.play();});
     modelMixer.setTime(0);
   }
   camera.position.set(0,settings.y||0,settings.z);
-  galleryModels.push({name,scene,root,camera,mixer:modelMixer,target:renderTarget,settings});
+  galleryModels.push({name,scene,root,camera,mixer:modelMixer,settings,hoverScale:1});
 }
 
 function initDragonfly(){
@@ -320,6 +333,9 @@ function initDragonfly(){
     return;
   }
   renderer.setClearColor(0x000000,0);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.1;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
   modelScene=new THREE.Scene();
   modelCamera=new THREE.PerspectiveCamera(mobileMotion?16:11,1,.1,1000);
   modelCamera.position.set(0,0,7);
@@ -329,6 +345,8 @@ function initDragonfly(){
   postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),asciiMaterial));
   const draco=new DRACOLoader();draco.setDecoderPath('assets/draco/');draco.setDecoderConfig({type:'wasm'});
   const loader=new GLTFLoader();loader.setDRACOLoader(draco);
+  const pmrem=new THREE.PMREMGenerator(renderer);
+  galleryEnv=pmrem.fromScene(new RoomEnvironment(),.04).texture;
   loader.load('assets/models/dragonfly.glb',(gltf)=>{
     dragonfly=new THREE.Group();dragonflyMotion=new THREE.Group();dragonflyMotion.add(gltf.scene);dragonfly.add(dragonflyMotion);
     const dragonflyMaterial=createModelMaterial('dragonfly');
@@ -364,28 +382,22 @@ function drawScene(time=0,delta=0){
     dragonfly.visible=false;
     if(window.scrollY!==previousScrollY)modelSpinDirection=window.scrollY>previousScrollY?1:-1;
     previousScrollY=window.scrollY;
-    asciiMaterial.uniforms.uFade.value=1;asciiMaterial.uniforms.uTime.value=time*.001;
     renderer.setRenderTarget(null);renderer.setScissorTest(false);renderer.clear();
     modelViewports.forEach((viewport)=>{
       const rect=viewport.getBoundingClientRect();
       if(rect.bottom<=0||rect.top>=heroHeight)return;
       const entry=galleryModels.find((model)=>model.name===viewport.dataset.model);
       if(!entry)return;
-      const black=['lantern','logo'].includes(entry.name);const bright=['flower','fish','hive','dragon'].includes(entry.name);
-      asciiMaterial.uniforms.uColor.value.set(activeModel===entry.name?0xc7ff16:black?0x000000:0xffffff);asciiMaterial.uniforms.uBlack.value=black&&activeModel!==entry.name?1:0;
-      asciiMaterial.uniforms.uLuminanceBoost.value=bright?2.4:mobileMotion?1.5:1;
-      asciiMaterial.uniforms.uGlyphFloor.value=bright?.6:mobileMotion?.88:.72;
       if(entry.settings.spin!==false)entry.scene.rotation.y+=delta*.25*modelSpinDirection;
       entry.root.rotation.y=THREE.MathUtils.lerp(entry.root.rotation.y,window.scrollY*.005,.3);
       if(entry.mixer)entry.mixer.update(delta);
-      const ratio=mobileMotion?1:Math.min(window.devicePixelRatio||1,1.5);
-      const width=Math.max(1,Math.round(rect.width*ratio));const height=Math.max(1,Math.round(rect.height*ratio));
+      entry.hoverScale=THREE.MathUtils.lerp(entry.hoverScale,activeModel===entry.name?1.07:1,.12);
+      entry.root.scale.setScalar(entry.hoverScale);
       entry.camera.aspect=1;entry.camera.updateProjectionMatrix();
-      asciiMaterial.uniforms.tScene.value=entry.target.texture;asciiMaterial.uniforms.uResolution.value.set(width,height);asciiMaterial.uniforms.uCell.value=(mobileMotion?Math.max(3,entry.settings.cell-1):entry.settings.cell)*ratio;
-      renderer.setRenderTarget(entry.target);renderer.clear();renderer.render(entry.scene,entry.camera);
-      renderer.setRenderTarget(null);renderer.setScissorTest(true);
+      renderer.setScissorTest(true);
       const bottom=heroHeight-rect.bottom;
-      renderer.setViewport(rect.left,bottom,rect.width,rect.height);renderer.setScissor(rect.left,bottom,rect.width,rect.height);renderer.render(postScene,postCamera);
+      renderer.setViewport(rect.left,bottom,rect.width,rect.height);renderer.setScissor(rect.left,bottom,rect.width,rect.height);renderer.clear();
+      renderer.render(entry.scene,entry.camera);
     });
     renderer.setScissorTest(false);
     return;
@@ -646,15 +658,54 @@ const asciiOverlay = document.createElement('div');
 asciiOverlay.className = 'ascii-overlay';
 asciiOverlay.setAttribute('aria-hidden', 'true');
 asciiOverlay.innerHTML =
-  '<span class="ascii-edge ascii-edge--left"></span>'
-  + '<span class="ascii-edge ascii-edge--right"></span>'
+  '<pre class="ascii-bg ascii-bg--far"></pre>'
+  + '<pre class="ascii-bg ascii-bg--near"></pre>'
   + '<div class="ascii-panel"><pre class="ascii-title"></pre><pre class="ascii-sub"></pre><span class="ascii-hint">TYPE [IH] OR TAP ANYWHERE TO EXIT</span></div>';
 document.body.appendChild(asciiOverlay);
 const asciiTitle = asciiOverlay.querySelector('.ascii-title');
 const asciiSub = asciiOverlay.querySelector('.ascii-sub');
-const asciiEdges = asciiOverlay.querySelectorAll('.ascii-edge');
+const asciiBgs = [...asciiOverlay.querySelectorAll('.ascii-bg')];
 let asciiActive = false;
-let edgeTimer = null;
+let bgTimers = [];
+
+function measureAsciiGrid() {
+  const probe = document.createElement('span');
+  probe.textContent = 'X'.repeat(50);
+  probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;font:12px var(--mono);letter-spacing:.18em';
+  document.body.appendChild(probe);
+  const charW = probe.getBoundingClientRect().width / 50 || 8;
+  const lineH = probe.getBoundingClientRect().height || 12;
+  probe.remove();
+  return {
+    cols: Math.max(10, Math.ceil(window.innerWidth / charW) + 2),
+    rows: Math.max(6, Math.ceil(window.innerHeight / lineH) + 1)
+  };
+}
+
+function fillAsciiBg(layer, grid, full) {
+  if (full) {
+    layer.dataset.grid = JSON.stringify(grid);
+    let out = '';
+    for (let r = 0; r < grid.rows; r++) {
+      let line = '';
+      for (let c = 0; c < grid.cols; c++) line += randomGlyph();
+      out += line + '\n';
+    }
+    layer.textContent = out.slice(0, -1);
+    return;
+  }
+  const gridData = JSON.parse(layer.dataset.grid);
+  const lines = layer.textContent.split('\n');
+  for (let i = 0; i < Math.ceil(gridData.rows * gridData.cols * .04); i++) {
+    const r = Math.floor(Math.random() * gridData.rows);
+    const start = Math.floor(Math.random() * gridData.cols);
+    const len = 4 + Math.floor(Math.random() * 14);
+    let seg = '';
+    for (let j = 0; j < len && start + j < gridData.cols; j++) seg += randomGlyph();
+    lines[r] = lines[r].slice(0, start) + seg + lines[r].slice(start + len);
+  }
+  layer.textContent = lines.join('\n');
+}
 
 function setAsciiMode(on) {
   if (on === asciiActive) return;
@@ -664,14 +715,19 @@ function setAsciiMode(on) {
   if (on) {
     scrambleText(asciiTitle, 'INI HARITH', 34);
     setTimeout(() => scrambleText(asciiSub, 'FULL-STACK DEVELOPER / MALAYSIA', 22), reduceMotion ? 0 : 320);
-    const paintEdges = () => asciiEdges.forEach((edge) => { edge.textContent = randomString(46); });
-    paintEdges();
-    if (!reduceMotion) edgeTimer = setInterval(paintEdges, 140);
+    const grid = measureAsciiGrid();
+    asciiBgs.forEach((layer, index) => fillAsciiBg(layer, grid, true));
+    if (!reduceMotion) {
+      bgTimers = [
+        setInterval(() => fillAsciiBg(asciiBgs[0], null, false), 160),
+        setInterval(() => fillAsciiBg(asciiBgs[1], null, false), 90)
+      ];
+    }
     asciiOverlay.querySelector('.ascii-panel').dataset.cornerA = randomString(4);
     asciiOverlay.querySelector('.ascii-panel').dataset.cornerB = randomString(4);
   } else {
-    clearInterval(edgeTimer);
-    edgeTimer = null;
+    bgTimers.forEach(clearInterval);
+    bgTimers = [];
   }
 }
 
