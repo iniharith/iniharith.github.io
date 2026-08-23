@@ -613,3 +613,81 @@ if (nowStatus && nowText) {
       nowStatus.hidden = true;
     });
 }
+
+const asciiGlyphs = ' *_<>,./O#SF+';
+function randomGlyph() {
+  return asciiGlyphs[Math.floor(Math.random() * asciiGlyphs.length)];
+}
+function randomString(length) {
+  let out = '';
+  for (let i = 0; i < length; i++) out += randomGlyph();
+  return out;
+}
+function scrambleText(element, finalText, step) {
+  if (reduceMotion || !element) {
+    if (element) element.textContent = finalText;
+    return;
+  }
+  let frame = 0;
+  const totalFrames = Math.max(14, finalText.length);
+  const timer = setInterval(() => {
+    frame++;
+    const settled = Math.floor((frame / totalFrames) * finalText.length);
+    element.textContent = finalText.slice(0, settled)
+      + [...finalText.slice(settled)].map((ch) => (ch === ' ' ? ' ' : randomGlyph())).join('');
+    if (settled >= finalText.length) {
+      clearInterval(timer);
+      element.textContent = finalText;
+    }
+  }, step);
+}
+
+const asciiOverlay = document.createElement('div');
+asciiOverlay.className = 'ascii-overlay';
+asciiOverlay.setAttribute('aria-hidden', 'true');
+asciiOverlay.innerHTML =
+  '<span class="ascii-edge ascii-edge--left"></span>'
+  + '<span class="ascii-edge ascii-edge--right"></span>'
+  + '<div class="ascii-panel"><pre class="ascii-title"></pre><pre class="ascii-sub"></pre><span class="ascii-hint">TYPE [IH] AGAIN TO EXIT</span></div>';
+document.body.appendChild(asciiOverlay);
+const asciiTitle = asciiOverlay.querySelector('.ascii-title');
+const asciiSub = asciiOverlay.querySelector('.ascii-sub');
+const asciiEdges = asciiOverlay.querySelectorAll('.ascii-edge');
+let asciiActive = false;
+let edgeTimer = null;
+
+function setAsciiMode(on) {
+  if (on === asciiActive) return;
+  asciiActive = on;
+  document.documentElement.classList.toggle('ascii-easter', on);
+  asciiOverlay.classList.toggle('is-active', on);
+  if (on) {
+    scrambleText(asciiTitle, 'INI HARITH', 34);
+    setTimeout(() => scrambleText(asciiSub, 'FULL-STACK DEVELOPER / MALAYSIA', 22), reduceMotion ? 0 : 320);
+    const paintEdges = () => asciiEdges.forEach((edge) => { edge.textContent = randomString(46); });
+    paintEdges();
+    if (!reduceMotion) edgeTimer = setInterval(paintEdges, 140);
+    asciiOverlay.querySelector('.ascii-panel').dataset.cornerA = randomString(4);
+    asciiOverlay.querySelector('.ascii-panel').dataset.cornerB = randomString(4);
+  } else {
+    clearInterval(edgeTimer);
+    edgeTimer = null;
+  }
+}
+
+let ihBuffer = '';
+document.addEventListener('keydown', (event) => {
+  if (event.repeat) return;
+  const target = event.target;
+  if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+  if (event.key === 'Escape' && asciiActive) {
+    setAsciiMode(false);
+    return;
+  }
+  if (event.key.length !== 1) return;
+  ihBuffer = (ihBuffer + event.key.toLowerCase()).slice(-2);
+  if (ihBuffer === 'ih') {
+    ihBuffer = '';
+    setAsciiMode(!asciiActive);
+  }
+});

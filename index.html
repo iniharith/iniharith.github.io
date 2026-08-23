@@ -18,17 +18,63 @@
     <meta name="twitter:description" content="Selected projects and experiments by Ini Harith.">
     <meta name="twitter:image" content="https://iniharith.github.io/og-image.png">
     <link rel="canonical" href="https://iniharith.github.io/">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Person",
+          "@id": "https://iniharith.github.io/#person",
+          "name": "Ini Harith",
+          "alternateName": "Harith",
+          "url": "https://iniharith.github.io/",
+          "jobTitle": "Full-Stack Developer & Senior Graphic Designer",
+          "description": "Full-stack developer building web platforms and Android experiences in Malaysia.",
+          "address": { "@type": "PostalAddress", "addressCountry": "MY" },
+          "knowsAbout": ["React", "Next.js", "Node.js", "TypeScript", "MongoDB", "Redis", "Kotlin", "Android", "Docker", "AWS"],
+          "sameAs": [
+            "https://github.com/iniharith",
+            "https://www.instagram.com/harith.ini",
+            "https://www.facebook.com/share/19XXNkK26F/",
+            "https://www.tiktok.com/@ini.harith"
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://iniharith.github.io/#website",
+          "url": "https://iniharith.github.io/",
+          "name": "Ini Harith — Portfolio",
+          "publisher": { "@id": "https://iniharith.github.io/#person" }
+        },
+        { "@type": "CreativeWork", "name": "Shop-Co", "description": "Full-stack commerce system with a Next.js storefront, Node.js backend, and Redis-backed sessions.", "url": "https://iniharith.github.io/projects/shop-co.html", "dateCreated": "2026", "author": { "@id": "https://iniharith.github.io/#person" } },
+        { "@type": "CreativeWork", "name": "Nothing Player", "description": "Android music experience built in Kotlin with a minimal Nothing-inspired interface.", "url": "https://iniharith.github.io/projects/nothing-player.html", "dateCreated": "2026", "author": { "@id": "https://iniharith.github.io/#person" } },
+        { "@type": "CreativeWork", "name": "Nothing Lyrics", "description": "Minimal lyrics companion app for Android.", "url": "https://iniharith.github.io/projects/nothing-lyrics.html", "dateCreated": "2026", "author": { "@id": "https://iniharith.github.io/#person" } },
+        { "@type": "CreativeWork", "name": "Kampung Cetak", "description": "Digital printing platform taking custom print orders from brief to checkout online.", "url": "https://iniharith.github.io/projects/kampung-cetak.html", "dateCreated": "2026", "author": { "@id": "https://iniharith.github.io/#person" } }
+      ]
+    }
+    </script>
     <title>Ini Harith - Full-Stack Developer</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=20260822">
+    <link rel="stylesheet" href="styles.css?v=20260822-2">
     <script src="https://unpkg.com/lenis@1.1.14/dist/lenis.min.js" defer></script>
     <script type="importmap">
       {"imports":{"three":"./assets/three/three.module.js","three/addons/":"./assets/three/addons/"}}
     </script>
-    <script type="module" src="script.js?v=20260822"></script>
+    <script type="module" src="script.js?v=20260822-2"></script>
+    <script type="speculationrules">
+    {
+      "prerender": [
+        {
+          "source": "document",
+          "where": { "and": [ { "href_matches": "/*" }, { "not": { "href_matches": "/login/*" } } ] },
+          "eagerness": "moderate"
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div class="aurora aurora--global" aria-hidden="true"><span></span><span></span></div>
@@ -348,6 +394,8 @@
           <span>CODED WITH INTENTION</span>
           <div class="footer-links">
             <a href="https://github.com/iniharith" target="_blank" rel="noreferrer">GITHUB ↗</a>
+            <a href="colophon.html">COLOPHON</a>
+            <a href="uses.html">USES</a>
             <a href="#home">BACK TO TOP ↑</a>
           </div>
         </footer>

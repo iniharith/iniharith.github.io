@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="How this site is built: a Three.js scene pushed through a custom ASCII shader pipeline. No frameworks, no build step.">
+  <meta property="og:title" content="Colophon — How this site works | Ini Harith">
+  <meta property="og:description" content="Three.js models rendered through a custom ASCII glyph shader. No framework, no build step, all in one file of JavaScript.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://iniharith.github.io/colophon.html">
+  <title>Colophon — How this site works | Ini Harith</title>
+  <link rel="canonical" href="https://iniharith.github.io/colophon.html">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <meta name="theme-color" content="#c7ff16">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@500;600&display=swap" rel="stylesheet">
+  <style>
+    :root{--ink:#0a0a0a;--acid:#c7ff16;--paper:#f1f0ea;--line:rgba(241,240,234,.22);--mono:"DM Mono",monospace;--sans:"Manrope",Arial,sans-serif}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100svh;background:var(--ink);color:var(--paper);font-family:var(--sans);display:flex;flex-direction:column;padding:26px clamp(16px,4vw,44px) 30px}
+    a{color:inherit;text-decoration:none}
+    ::selection{background:var(--acid);color:var(--ink)}
+    .top{display:flex;justify-content:space-between;align-items:center;padding-bottom:18px;border-bottom:1px solid var(--line);font:11px var(--mono);letter-spacing:.08em;color:var(--acid)}
+    .kicker{margin:70px 0 14px;display:flex;align-items:center;gap:8px;font:11px var(--mono);letter-spacing:.1em;color:var(--acid)}
+    .dot{width:7px;height:7px;border-radius:50%;background:var(--acid);box-shadow:0 0 15px var(--acid)}
+    h1{margin:0;font-size:clamp(58px,12vw,170px);font-weight:600;letter-spacing:-.07em;line-height:.85}
+    .role{margin:16px 0 60px;font:12px var(--mono);letter-spacing:.09em;color:rgba(241,240,234,.6)}
+    .chapter{max-width:980px;margin-bottom:70px}
+    .chapter>h2{margin:0 0 26px;font:11px var(--mono);letter-spacing:.14em;color:var(--acid);border-top:1px solid var(--line);padding-top:18px}
+    .chapter-grid{display:grid;grid-template-columns:2fr 3fr;gap:40px}
+    .chapter-grid p{margin:0 0 18px;font-size:clamp(16px,1.5vw,19px);line-height:1.6;color:rgba(241,240,234,.88)}
+    .spec-list{margin:0;border-top:1px solid var(--line)}
+    .spec-list>div{display:grid;grid-template-columns:170px 1fr;gap:16px;padding:12px 0;border-bottom:1px solid var(--line);font-size:14px;line-height:1.55}
+    .spec-list dt{font:10px var(--mono);letter-spacing:.12em;color:rgba(241,240,234,.45);padding-top:3px}
+    .spec-list dd{margin:0;color:rgba(241,240,234,.85)}
+    code{font-family:var(--mono);font-size:13px;color:var(--acid);background:rgba(199,255,22,.08);padding:2px 6px;border-radius:3px}
+    @media(max-width:720px){.chapter-grid{grid-template-columns:1fr}.spec-list>div{grid-template-columns:1fr}.kicker{margin-top:46px}}
+    .foot{margin-top:auto;display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;padding-top:20px;border-top:1px solid var(--line);font:10px var(--mono);letter-spacing:.08em;color:rgba(241,240,234,.4)}
+  @media (prefers-reduced-motion: no-preference){@view-transition{navigation:auto}}</style>
+  <script type="speculationrules">{"prerender":[{"source":"document","where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":"/login/*"}}]},"eagerness":"moderate"}]}</script>
+</head>
+<body>
+  <header class="top">
+    <a href="/">IH ← INIHARITH.GITHUB.IO</a>
+    <a href="uses.html">TOOLS I USE →</a>
+  </header>
+  <div class="kicker"><span class="dot"></span>COLOPHON / HOW THIS SITE WORKS</div>
+  <h1>COLOPHON</h1>
+  <p class="role">ONE SHADER PIPELINE · ZERO FRAMEWORKS · NO BUILD STEP</p>
+
+  <section class="chapter">
+    <h2>01 — THE TRICK</h2>
+    <div class="chapter-grid">
+      <p>The dragonfly on the homepage is not ASCII art someone drew. It is a real-time 3D model rendered offscreen, then re-drawn as characters by a fragment shader.</p>
+      <div>
+        <p>A DRACO-compressed <code>.glb</code> loads into Three.js and renders to an offscreen <code>WebGLRenderTarget</code>. A fullscreen quad samples that texture, quantizes it into cells, converts each cell's luminance into a character index, and looks up the matching glyph from an atlas drawn onto a canvas at runtime. Part of every visit to this page is literally rendered text.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="chapter">
+    <h2>02 — SHADERS</h2>
+    <div class="chapter-grid">
+      <p>Two custom GLSL programs do the work. Nothing about the materials is stock.</p>
+      <div>
+        <dl class="spec-list">
+          <div><dt>MODEL FRAGMENT</dt><dd>Luminance comes from dot-product lighting on recomputed normals, remapped into an acid-green palette with per-model brightness, normal strength, and color uniforms.</dd></div>
+          <div><dt>ASCII POST</dt><dd>Splits the frame into cells (size tracks device pixel ratio), maps luminance to a glyph index, samples the atlas, and modulates alpha so bright surfaces dissolve into dense glyphs.</dd></div>
+          <div><dt>GLYPH ATLAS</dt><dd>The character set <code>* _&lt;&gt;,./O#SF+</code> is drawn once onto a canvas texture at startup — no image assets involved.</dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <section class="chapter">
+    <h2>03 — MOTION</h2>
+    <div class="chapter-grid">
+      <p>Scroll is the only timeline. Everything animates as a function of where you are on the page.</p>
+      <div>
+        <p>Scroll progress eases the camera along a path baked into the model through two empty marker objects (<code>camera-follow</code>, <code>camera-lookAt</code>), while wing-flap frequency accelerates as you descend. Lenis smooths wheel input, parallax and fluid transforms are batched into a single <code>requestAnimationFrame</code> loop, sections reveal through <code>IntersectionObserver</code>, and <code>prefers-reduced-motion</code> switches the whole show off.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="chapter">
+    <h2>04 — STACK</h2>
+    <div class="chapter-grid">
+      <p>Boring infrastructure on purpose, so the interesting part can be the pixels.</p>
+      <div>
+        <dl class="spec-list">
+          <div><dt>FRAMEWORK</dt><dd>None. Hand-written HTML, CSS, and ES modules.</dd></div>
+          <div><dt>RENDERER</dt><dd>Three.js, vendored locally behind an import map — no CDN dependency at runtime.</dd></div>
+          <div><dt>SCROLL</dt><dd>Lenis for smooth wheel input, native behavior preserved as fallback.</dd></div>
+          <div><dt>HOSTING</dt><dd>GitHub Pages, static files only.</dd></div>
+          <div><dt>BUILD STEP</dt><dd>There isn't one. What is committed is what ships.</dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span>INI HARITH © 2026 · BUILT WITH INTENTION</span>
+    <span><a href="uses.html">USES</a> &nbsp;·&nbsp; <a href="/#work">PROJECTS</a></span>
+  </footer>
+</body>
+</html>

@@ -39,9 +39,11 @@ h2{margin:0 0 22px;font:11px var(--mono);letter-spacing:.1em;color:var(--acid)}
 .btn{display:inline-flex;align-items:center;gap:10px;padding:16px 26px;border-radius:4px;background:var(--acid);color:var(--ink);font:700 13px var(--sans);transition:transform .15s ease}
 .btn:hover{transform:translateY(-2px)}
 .btn--ghost{background:transparent;color:var(--paper);box-shadow:inset 0 0 0 1px var(--line)}
-.foot{margin-top:auto;display:flex;justify-content:space-between;padding-top:20px;border-top:1px solid var(--line);font:10px var(--mono);letter-spacing:.08em;color:rgba(241,240,234,.4)}
+@media (prefers-reduced-motion: no-preference){@view-transition{navigation:auto}}
+    .foot{margin-top:auto;display:flex;justify-content:space-between;padding-top:20px;border-top:1px solid var(--line);font:10px var(--mono);letter-spacing:.08em;color:rgba(241,240,234,.4)}
 @media(max-width:720px){.overview{grid-template-columns:1fr}.kicker{margin-top:46px}}
 </style>
+  <script type="speculationrules">{"prerender":[{"source":"document","where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":"/login/*"}}]},"eagerness":"moderate"}]}</script>
 </head>
 <body>
   <header class="top">
