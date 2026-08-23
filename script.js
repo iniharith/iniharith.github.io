@@ -648,7 +648,7 @@ asciiOverlay.setAttribute('aria-hidden', 'true');
 asciiOverlay.innerHTML =
   '<span class="ascii-edge ascii-edge--left"></span>'
   + '<span class="ascii-edge ascii-edge--right"></span>'
-  + '<div class="ascii-panel"><pre class="ascii-title"></pre><pre class="ascii-sub"></pre><span class="ascii-hint">TYPE [IH] AGAIN TO EXIT</span></div>';
+  + '<div class="ascii-panel"><pre class="ascii-title"></pre><pre class="ascii-sub"></pre><span class="ascii-hint">TYPE [IH] OR TAP ANYWHERE TO EXIT</span></div>';
 document.body.appendChild(asciiOverlay);
 const asciiTitle = asciiOverlay.querySelector('.ascii-title');
 const asciiSub = asciiOverlay.querySelector('.ascii-sub');
@@ -691,3 +691,19 @@ document.addEventListener('keydown', (event) => {
     setAsciiMode(!asciiActive);
   }
 });
+
+let brandTaps = 0;
+let brandTimer = null;
+const brandMark = document.querySelector('.site-header .brand');
+if (brandMark) {
+  brandMark.addEventListener('pointerdown', () => {
+    clearTimeout(brandTimer);
+    brandTaps += 1;
+    brandTimer = setTimeout(() => { brandTaps = 0; }, 1600);
+    if (brandTaps >= 5) {
+      brandTaps = 0;
+      setAsciiMode(!asciiActive);
+    }
+  });
+}
+asciiOverlay.addEventListener('pointerdown', () => setAsciiMode(false));
