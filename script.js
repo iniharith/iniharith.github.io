@@ -233,7 +233,18 @@ const modelVertexShader = `
 `;
 const modelFragmentShader = `
   precision highp float;uniform vec3 uRemapColor;uniform vec3 uLightDir;uniform float uBrightness;uniform float uNormalStrength;varying vec3 vNormal;varying vec3 vPosition;
-  void main(){vec3 normal=normalize(vNormal);float diff=max(dot(normal,normalize(uLightDir)),0.0);vec3 color=diff*uBrightness+normal*uNormalStrength+.5;color=clamp(color,.15,.995)*uRemapColor;gl_FragColor=vec4(color,1.0);}
+  float hash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
+  void main(){
+    vec3 normal=normalize(vNormal);vec3 V=normalize(-vPosition);vec3 L=normalize(uLightDir);
+    float diff=max(dot(normal,L),0.0);
+    float fill=max(dot(normal,normalize(vec3(-0.6,-0.2,0.8))),0.0)*0.22;
+    float back=max(dot(normal,normalize(vec3(0.2,-0.4,-1.0))),0.0)*0.14;
+    float spec=pow(max(dot(normal,normalize(L+V)),0.0),36.0)*0.55;
+    float fres=pow(1.0-max(dot(normal,V),0.0),2.6)*0.32;
+    float grain=(hash(floor(vec3(normal.x,normal.y,length(vPosition))*64.0))-0.5)*0.07;
+    vec3 color=diff*uBrightness+fill+back+spec+fres+normal*uNormalStrength+0.5+grain;
+    color=clamp(color,0.12,0.995)*uRemapColor;gl_FragColor=vec4(color,1.0);
+  }
 `;
 const fragmentShader = `
   precision highp float;
@@ -290,9 +301,10 @@ function resizeHero(){
 
 function createModelMaterial(name){
   const branch=name==='branch';const logo=name==='logo';const bright=['flower','fish','hive','dragon'].includes(name);
+  const gallery=!branch&&name!=='dragonfly';
   const remap=branch?new THREE.Vector3(.35,.35,.35):logo?new THREE.Vector3(.9,.9,.9):mobileMotion?new THREE.Vector3(.82,.98,.98):new THREE.Vector3(.69,.9,.9);
-  const brightness=logo?1:branch?.5:bright?1:mobileMotion?.42:.2;
-  const normalStrength=branch?1.5:bright?2:mobileMotion?.62:.5;
+  const brightness=logo?1:branch?.5:bright?(mobileMotion?.95:1.05):(mobileMotion?.42:gallery?.36:.2);
+  const normalStrength=branch?1.5:bright?(mobileMotion?1.7:2):(mobileMotion?.62:gallery?.78:.5);
   return new THREE.ShaderMaterial({transparent:true,side:THREE.DoubleSide,uniforms:{uRemapColor:{value:remap},uLightDir:{value:branch?new THREE.Vector3(0,.8,1):new THREE.Vector3(0,2,1)},uBrightness:{value:brightness},uNormalStrength:{value:normalStrength}},vertexShader:modelVertexShader,fragmentShader:modelFragmentShader});
 }
 
